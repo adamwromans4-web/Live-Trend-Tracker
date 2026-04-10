@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ASPH Workflow Status Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#f7f6f3;--surface:#fff;--surface2:#f0efe9;
+    --border:rgba(0,0,0,0.09);--border-mid:rgba(0,0,0,0.15);
+    --text:#1a1916;--text-2:#6b6a65;--text-3:#a09f99;
+    --green:#1a8a5a;--green-bg:#e6f5ed;
+    --amber:#a05c0a;--amber-bg:#fef3e2;
+    --blue:#1a5ca0;--blue-bg:#e6f0fc;
+    --purple:#5b35b0;--purple-bg:#eeebff;
+    --gray:#6b6a65;--gray-bg:#f0efe9;
+    --red:#a0251a;--red-bg:#fce9e6;
+    --radius:10px;--radius-lg:14px;
+    --shadow:0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:12px;}
+  .logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .logo-dot{width:9px;height:9px;border-radius:50%;background:var(--green);animation:pulse 2.5s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
+  .logo-text{font-size:15px;font-weight:600;letter-spacing:-0.3px;}
+  .logo-sub{font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;margin-left:4px;}
+  .header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .live-pill{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;background:var(--green-bg);color:var(--green);font-family:'DM Mono',monospace;}
+  .role-pill{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;}
+  .role-supervisor{background:var(--purple-bg);color:var(--purple);}
+  .role-viewer{background:var(--gray-bg);color:var(--gray);}
+  .btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:7px 14px;border-radius:var(--radius);border:1px solid var(--border-mid);background:var(--surface);color:var(--text);cursor:pointer;transition:background 0.15s;white-space:nowrap;}
+  .btn:hover{background:var(--surface2);}
+  .btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
+  .btn-primary:hover{background:#333;}
+  .btn-ghost{border-color:transparent;color:var(--text-3);font-size:12px;padding:5px 10px;}
+  .btn-ghost:hover{background:var(--surface2);color:var(--text-2);border-color:var(--border);}
+  .btn-sm{font-size:12px;padding:5px 12px;}
+  .tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;gap:0;}
+  .tab{font-size:13px;font-weight:500;padding:12px 18px;border-bottom:2px solid transparent;cursor:pointer;color:var(--text-3);transition:color 0.15s,border-color 0.15s;white-space:nowrap;user-select:none;}
+  .tab:hover{color:var(--text-2);}
+  .tab.active-g{color:var(--blue);border-bottom-color:var(--blue);}
+  .tab.active-s{color:var(--purple);border-bottom-color:var(--purple);}
+  .tab-count{font-size:10px;font-family:'DM Mono',monospace;background:var(--surface2);border-radius:10px;padding:1px 6px;margin-left:6px;color:var(--text-3);}
+  main{max-width:960px;margin:0 auto;padding:2rem 1.5rem;}
+  .view-banner{background:var(--blue-bg);border:1px solid rgba(26,92,160,0.2);border-radius:var(--radius-lg);padding:0.85rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .view-banner-text{font-size:13px;color:var(--blue);}
+  .view-banner-text strong{font-weight:600;}
+  .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:2rem;}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow);}
+  .metric-label{font-size:11px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;}
+  .metric-val{font-size:28px;font-weight:600;letter-spacing:-1px;line-height:1;}
+  .metric-sub{font-size:11px;color:var(--text-3);margin-top:3px;}
+  .val-green{color:var(--green);}.val-amber{color:var(--amber);}.val-gray{color:var(--gray);}
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center;}
+  .filter-label{font-size:12px;color:var(--text-3);}
+  .filter-chip{font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--border-mid);background:var(--surface);color:var(--text-2);cursor:pointer;transition:background 0.12s;white-space:nowrap;}
+  .filter-chip.active{background:var(--purple-bg);border-color:rgba(91,53,176,0.3);color:var(--purple);font-weight:500;}
+  .filter-select{font-family:'DM Sans',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;cursor:pointer;}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);margin-bottom:1.25rem;overflow:hidden;}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.25rem;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap;}
+  .panel-title{font-size:13px;font-weight:600;letter-spacing:-0.2px;}
+  .panel-meta{font-size:12px;color:var(--text-3);font-family:'DM Mono',monospace;}
+  .trend-row{display:flex;align-items:flex-start;gap:12px;padding:0.9rem 1.25rem;border-bottom:1px solid var(--border);transition:background 0.12s;}
+  .trend-row:last-child{border-bottom:none;}
+  .trend-row:hover{background:var(--surface2);}
+  .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;}
+  .dot-new{background:var(--blue);}.dot-active{background:var(--green);}.dot-monitoring{background:var(--amber);}.dot-resolved{background:var(--gray);}
+  .trend-info{flex:1;min-width:0;}
+  .trend-title{font-size:14px;font-weight:500;}
+  .trend-meta{font-size:12px;color:var(--text-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .trend-right{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+  .badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+  .badge-new{background:var(--blue-bg);color:var(--blue);}
+  .badge-active{background:var(--green-bg);color:var(--green);}
+  .badge-monitoring{background:var(--amber-bg);color:var(--amber);}
+  .badge-resolved{background:var(--gray-bg);color:var(--gray);}
+  .badge-spec{background:var(--purple-bg);color:var(--purple);font-size:10px;}
+  .icon-btn{background:none;border:1px solid transparent;border-radius:6px;cursor:pointer;color:var(--text-3);padding:4px 6px;font-size:13px;line-height:1;transition:background 0.12s,color 0.12s;}
+  .icon-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text-2);}
+  .empty-state{padding:2.5rem 1.25rem;text-align:center;color:var(--text-3);font-size:13px;}
+  .alert-row{display:flex;align-items:flex-start;gap:10px;padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);}
+  .alert-row:last-child{border-bottom:none;}
+  .alert-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;margin-top:1px;font-family:'DM Mono',monospace;}
+  .ai-new{background:var(--blue-bg);color:var(--blue);}.ai-change{background:var(--amber-bg);color:var(--amber);}.ai-resolved{background:var(--green-bg);color:var(--green);}.ai-info{background:var(--gray-bg);color:var(--gray);}.ai-spec{background:var(--purple-bg);color:var(--purple);}
+  .alert-text{flex:1;font-size:13px;}
+  .alert-time{font-size:11px;color:var(--text-3);margin-top:1px;font-family:'DM Mono',monospace;}
+  .alert-del{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:14px;padding:2px 4px;border-radius:4px;}
+  .alert-del:hover{color:var(--text-2);background:var(--surface2);}
+  .team-area{display:flex;align-items:center;gap:8px;padding:0.9rem 1.25rem;flex-wrap:wrap;}
+  .avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border);transition:transform 0.15s;}
+  .avatar:hover{transform:scale(1.1);}
+  .online{box-shadow:0 0 0 2px var(--green);}
+  .av-0{background:#e8e6ff;color:#3d35a0;}.av-1{background:var(--green-bg);color:var(--green);}.av-2{background:var(--amber-bg);color:var(--amber);}.av-3{background:var(--red-bg);color:var(--red);}.av-4{background:var(--blue-bg);color:var(--blue);}
+  .notify-area{padding:0.9rem 1.25rem;display:flex;gap:8px;flex-wrap:wrap;}
+  .notif-input{flex:1;min-width:200px;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;}
+  .notif-input:focus{border-color:var(--text);}
+  .notif-select{font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;cursor:pointer;}
+  .footer-note{text-align:center;font-size:11px;color:var(--text-3);padding:1.5rem 0 0.5rem;font-family:'DM Mono',monospace;}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:360px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.14);}
+  .modal h3{font-size:16px;font-weight:600;margin-bottom:0.4rem;}
+  .modal-sub{font-size:13px;color:var(--text-3);margin-bottom:1.5rem;}
+  .pin-row{display:flex;gap:10px;justify-content:center;margin-bottom:1.25rem;}
+  .pin-digit{width:56px;height:64px;font-size:26px;font-weight:600;font-family:'DM Mono',monospace;text-align:center;border:1.5px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;transition:border-color 0.15s;}
+  .pin-digit:focus{border-color:var(--text);}
+  .pin-error{font-size:12px;color:var(--red);text-align:center;margin-bottom:1rem;min-height:18px;}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+  .toverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:200;align-items:center;justify-content:center;}
+  .tmodal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.75rem;width:440px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.12);max-height:90vh;overflow-y:auto;}
+  .tmodal h3{font-size:16px;font-weight:600;margin-bottom:4px;}
+  .tmodal-badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:1.25rem;}
+  .tmodal-badge-g{background:var(--blue-bg);color:var(--blue);}
+  .tmodal-badge-s{background:var(--purple-bg);color:var(--purple);}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:5px;}
+  .field input,.field select,.field textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 11px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;transition:border-color 0.15s;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--text);}
+  .field textarea{height:75px;resize:vertical;}
+  .modal-btns2{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
+  .tab-content{display:none;}.tab-content.active{display:block;}
+  @media(max-width:640px){
+    .metrics{grid-template-columns:repeat(2,minmax(0,1fr));}
+    header{padding:10px 1rem;height:auto;}
+    .tab-bar{padding:0 1rem;}
+    main{padding:1.25rem 1rem;}
+    .pin-digit{width:44px;height:54px;font-size:20px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span class="logo-text">Workflow Tracker</span>
+    <span class="logo-sub">ASPH</span>
+  </div>
+  <div class="header-right">
+    <span class="live-pill">LIVE</span>
+    <span id="role-pill" class="role-pill role-viewer">View only</span>
+    <span id="last-upd" style="font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;"></span>
+    <button id="login-btn" class="btn btn-sm" onclick="openPinModal()">Supervisor login</button>
+    <button id="logout-btn" class="btn btn-ghost" onclick="logout()" style="display:none;">Log out</button>
+    <button id="add-btn" class="btn btn-primary btn-sm" onclick="openTrendModal()" style="display:none;">+ Add trend</button>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active-g" id="tab-g" onclick="switchTab('general')">
+    General Trends <span class="tab-count" id="tc-g">0</span>
+  </div>
+  <div class="tab" id="tab-s" onclick="switchTab('speciality')">
+    Speciality Trends <span class="tab-count" id="tc-s">0</span>
+  </div>
+</div>
+
+<main>
+  <div class="view-banner" id="view-banner">
+    <span class="view-banner-text"><strong>View only mode.</strong> You can see all trends and activity — only supervisors can make changes.</span>
+    <button class="btn btn-sm" onclick="openPinModal()">Supervisor login</button>
+  </div>
+
+  <!-- GENERAL TAB -->
+  <div class="tab-content active" id="content-general">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="gm-total">0</div><div class="metric-sub">general trends</div></div>
+      <div class="metric"><div class="metric-label">Active</div><div class="metric-val val-green" id="gm-active">0</div><div class="metric-sub">in progress</div></div>
+      <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val val-amber" id="gm-monitoring">0</div><div class="metric-sub">being watched</div></div>
+      <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val val-gray" id="gm-resolved">0</div><div class="metric-sub">closed out</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">General trends</span>
+        <span class="panel-meta" id="g-count">0 items</span>
+      </div>
+      <div id="g-list"><div class="empty-state" id="g-empty">No general trends logged yet. Supervisors can add trends using the "+ Add trend" button.</div></div>
+    </div>
+  </div>
+
+  <!-- SPECIALITY TAB -->
+  <div class="tab-content" id="content-speciality">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="sm-total">0</div><div class="metric-sub">speciality trends</div></div>
+      <div class="metric"><div class="metric-label">Active</div><div class="metric-val val-green" id="sm-active">0</div><div class="metric-sub">in progress</div></div>
+      <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val val-amber" id="sm-monitoring">0</div><div class="metric-sub">being watched</div></div>
+      <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val val-gray" id="sm-resolved">0</div><div class="metric-sub">closed out</div></div>
+    </div>
+    <div class="filter-bar">
+      <span class="filter-label">Filter by speciality:</span>
+      <span class="filter-chip active" data-spec="all" onclick="setFilter('all')">All</span>
+      <select class="filter-select" id="spec-filter-sel" onchange="setFilter(this.value)">
+        <option value="all">All specialities</option>
+      </select>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Speciality trends</span>
+        <span class="panel-meta" id="s-count">0 items</span>
+      </div>
+      <div id="s-list"><div class="empty-state" id="s-empty">No speciality trends logged yet. Supervisors can add trends using the "+ Add trend" button.</div></div>
+    </div>
+  </div>
+
+  <!-- SHARED -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Activity feed</span>
+      <button id="clear-btn" class="btn btn-sm" onclick="clearAlerts()" style="display:none;">Clear all</button>
+    </div>
+    <div id="alert-list"><div class="empty-state" id="empty-alerts">No activity yet.</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Team</span>
+      <button id="add-member-btn" class="btn btn-sm" onclick="addMember()" style="display:none;">+ Add member</button>
+    </div>
+    <div class="team-area" id="team-row">
+      <div class="avatar av-0 online" title="Alex (online)" onclick="pingMember('Alex')">AL</div>
+      <div class="avatar av-1 online" title="Beth (online)" onclick="pingMember('Beth')">BE</div>
+      <div class="avatar av-2" title="Chris" onclick="pingMember('Chris')">CH</div>
+      <div class="avatar av-3" title="Dana" onclick="pingMember('Dana')">DA</div>
+    </div>
+  </div>
+
+  <div class="panel" id="notify-panel" style="display:none;">
+    <div class="panel-header"><span class="panel-title">Notify team</span></div>
+    <div class="notify-area">
+      <input class="notif-input" id="notif-msg" placeholder="Type an update for your team..." />
+      <select class="notif-select" id="notif-type">
+        <option value="new">New finding</option>
+        <option value="change">Status change</option>
+        <option value="resolved">Resolved</option>
+        <option value="info">General update</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="sendNotif()">Send alert</button>
+    </div>
+  </div>
+
+  <div class="footer-note" id="footer-ts"></div>
+</main>
+
+<!-- PIN MODAL -->
+<div class="overlay" id="pin-overlay" onclick="closePinBg(event)">
+  <div class="modal">
+    <h3>Supervisor login</h3>
+    <p class="modal-sub">Enter your 4-digit PIN to unlock editing.</p>
+    <div class="pin-row">
+      <input class="pin-digit" id="p0" type="password" inputmode="numeric" maxlength="1"/>
+      <input class="pin-digit" id="p1" type="password" inputmode="numeric" maxlength="1"/>
+      <input class="pin-digit" id="p2" type="password" inputmode="numeric" maxlength="1"/>
+      <input class="pin-digit" id="p3" type="password" inputmode="numeric" maxlength="1"/>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closePinModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="checkPin()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- TREND MODAL -->
+<div class="toverlay" id="trend-overlay" onclick="closeTrendBg(event)">
+  <div class="tmodal">
+    <h3 id="t-ttl">Log a trend</h3>
+    <span class="tmodal-badge" id="t-badge">General</span>
+    <div class="field"><label>Trend title</label><input id="f-title" placeholder="e.g. Increased referral delays"/></div>
+    <div class="field"><label>Notes / observations</label><textarea id="f-notes" placeholder="Describe the trend, data points, context..."></textarea></div>
+    <div class="field"><label>Status</label>
+      <select id="f-status">
+        <option value="new">New</option>
+        <option value="active">Active</option>
+        <option value="monitoring">Monitoring</option>
+        <option value="resolved">Resolved</option>
+      </select>
+    </div>
+    <div class="field" id="spec-field" style="display:none;"><label>ASPH Speciality</label><select id="f-spec"></select></div>
+    <div class="field"><label>Owner</label><input id="f-owner" placeholder="Your name or team"/></div>
+    <div class="modal-btns2">
+      <button class="btn" onclick="closeTrendModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTrend()">Save trend</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PIN='1010';
+const SPECS=['Breast','Cardiology','Colorectal','Dermatology','Ear, Nose and Throat','Endocrinology','Gastroenterology','General Surgery','Gynaecology','Haematology','Maxillofacial Surgery','Neurology','Ophthalmology','Orthodontics','Orthopaedics','Paediatrics','Pain Management','Renal','Respiratory','Rheumatology','Spinal Surgery','Upper Gastrointestinal Surgery','Urology','Vascular'];
+const STATUS={new:{dot:'dot-new',badge:'badge-new',label:'New'},active:{dot:'dot-active',badge:'badge-active',label:'Active'},monitoring:{dot:'dot-monitoring',badge:'badge-monitoring',label:'Monitoring'},resolved:{dot:'dot-resolved',badge:'badge-resolved',label:'Resolved'}};
+const AMETA={new:['ai-new','N'],change:['ai-change','~'],resolved:['ai-resolved','✓'],info:['ai-info','i'],spec:['ai-spec','S']};
+const AVC=['av-0','av-1','av-2','av-3','av-4'];
+
+let sup=false,tab='general',filt='all',editId=null,mc=4;
+let trends=JSON.parse(localStorage.getItem('wft2-trends')||'[]');
+let alerts=JSON.parse(localStorage.getItem('wft2-alerts')||'[]');
+
+function save(){localStorage.setItem('wft2-trends',JSON.stringify(trends));localStorage.setItem('wft2-alerts',JSON.stringify(alerts));}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function ago(ts){const s=Math.floor((Date.now()-ts)/1000);if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
+
+// Init dropdowns
+(function(){
+  const fs=document.getElementById('f-spec'),ss=document.getElementById('spec-filter-sel');
+  SPECS.forEach(s=>{
+    const o=document.createElement('option');o.value=s;o.textContent=s;fs.appendChild(o);
+    const o2=document.createElement('option');o2.value=s;o2.textContent=s;ss.appendChild(o2);
+  });
+})();
+
+function switchTab(t){
+  tab=t;
+  document.getElementById('content-general').classList.toggle('active',t==='general');
+  document.getElementById('content-speciality').classList.toggle('active',t==='speciality');
+  document.getElementById('tab-g').className='tab'+(t==='general'?' active-g':'');
+  document.getElementById('tab-s').className='tab'+(t==='speciality'?' active-s':'');
+  if(sup)document.getElementById('add-btn').textContent=t==='general'?'+ Add general trend':'+ Add speciality trend';
+}
+
+function setFilter(v){
+  filt=v;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.spec===v));
+  document.getElementById('spec-filter-sel').value=v;
+  renderS();
+}
+
+function metrics(){
+  const g=trends.filter(t=>t.type==='general'),s=trends.filter(t=>t.type==='speciality');
+  document.getElementById('gm-total').textContent=g.length;
+  document.getElementById('gm-active').textContent=g.filter(t=>t.status==='active').length;
+  document.getElementById('gm-monitoring').textContent=g.filter(t=>t.status==='monitoring').length;
+  document.getElementById('gm-resolved').textContent=g.filter(t=>t.status==='resolved').length;
+  document.getElementById('sm-total').textContent=s.length;
+  document.getElementById('sm-active').textContent=s.filter(t=>t.status==='active').length;
+  document.getElementById('sm-monitoring').textContent=s.filter(t=>t.status==='monitoring').length;
+  document.getElementById('sm-resolved').textContent=s.filter(t=>t.status==='resolved').length;
+  document.getElementById('tc-g').textContent=g.length;
+  document.getElementById('tc-s').textContent=s.length;
+  document.getElementById('g-count').textContent=g.length+' item'+(g.length!==1?'s':'');
+  document.getElementById('s-count').textContent=s.length+' item'+(s.length!==1?'s':'');
+  document.getElementById('last-upd').textContent='Updated '+ago(Date.now());
+  document.getElementById('footer-ts').textContent='ASPH Workflow Tracker · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+function mkRow(t){
+  const m=STATUS[t.status],row=document.createElement('div');
+  row.className='trend-row';
+  const sb=t.speciality?`<span class="badge badge-spec">${esc(t.speciality)}</span>`:'';
+  const ac=sup?`<button class="icon-btn" onclick="editTrend(${t.id})">✎</button><button class="icon-btn" onclick="deleteTrend(${t.id})">✕</button>`:'';
+  row.innerHTML=`<div class="status-dot ${m.dot}"></div><div class="trend-info"><div class="trend-title">${esc(t.title)}</div><div class="trend-meta">${t.owner?esc(t.owner)+' · ':''}${ago(t.ts)}${t.notes?' · '+esc(t.notes.substring(0,55))+(t.notes.length>55?'…':''):''}</div></div><div class="trend-right">${sb}<span class="badge ${m.badge}">${m.label}</span>${ac}</div>`;
+  return row;
+}
+
+function renderG(){
+  const l=document.getElementById('g-list');
+  l.querySelectorAll('.trend-row').forEach(e=>e.remove());
+  const g=trends.filter(t=>t.type==='general');
+  document.getElementById('g-empty').style.display=g.length?'none':'';
+  g.forEach(t=>l.appendChild(mkRow(t)));
+  metrics();
+}
+
+function renderS(){
+  const l=document.getElementById('s-list');
+  l.querySelectorAll('.trend-row').forEach(e=>e.remove());
+  let s=trends.filter(t=>t.type==='speciality');
+  if(filt!=='all')s=s.filter(t=>t.speciality===filt);
+  document.getElementById('s-empty').style.display=s.length?'none':'';
+  s.forEach(t=>l.appendChild(mkRow(t)));
+  metrics();
+}
+
+function renderAll(){renderG();renderS();}
+
+function renderAlerts(){
+  const l=document.getElementById('alert-list');
+  l.querySelectorAll('.alert-row').forEach(e=>e.remove());
+  document.getElementById('empty-alerts').style.display=alerts.length?'none':'';
+  alerts.slice(0,30).forEach(a=>{
+    const[cls,icon]=AMETA[a.type]||AMETA.info;
+    const row=document.createElement('div');row.className='alert-row';
+    const del=sup?`<button class="alert-del" onclick="removeAlert(${a.id})">✕</button>`:'';
+    row.innerHTML=`<div class="alert-icon ${cls}">${icon}</div><div style="flex:1"><div class="alert-text">${esc(a.text)}</div><div class="alert-time">${ago(a.ts)}</div></div>${del}`;
+    l.appendChild(row);
+  });
+}
+
+function pushAlert(text,type){const id=Date.now()+Math.random();alerts.unshift({id,text,type,ts:Date.now()});if(alerts.length>60)alerts.pop();save();renderAlerts();}
+function removeAlert(id){alerts=alerts.filter(a=>a.id!==id);save();renderAlerts();}
+function clearAlerts(){if(!sup)return;alerts=[];save();renderAlerts();}
+
+function applyRole(){
+  document.getElementById('view-banner').style.display=sup?'none':'flex';
+  document.getElementById('role-pill').textContent=sup?'Supervisor':'View only';
+  document.getElementById('role-pill').className='role-pill '+(sup?'role-supervisor':'role-viewer');
+  document.getElementById('login-btn').style.display=sup?'none':'';
+  document.getElementById('logout-btn').style.display=sup?'':'none';
+  document.getElementById('add-btn').style.display=sup?'':'none';
+  if(sup)document.getElementById('add-btn').textContent=tab==='general'?'+ Add general trend':'+ Add speciality trend';
+  document.getElementById('clear-btn').style.display=sup?'':'none';
+  document.getElementById('add-member-btn').style.display=sup?'':'none';
+  document.getElementById('notify-panel').style.display=sup?'':'none';
+  renderAll();renderAlerts();
+}
+
+function openPinModal(){['p0','p1','p2','p3'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('pin-error').textContent='';document.getElementById('pin-overlay').style.display='flex';document.getElementById('p0').focus();}
+function closePinModal(){document.getElementById('pin-overlay').style.display='none';}
+function closePinBg(e){if(e.target===document.getElementById('pin-overlay'))closePinModal();}
+function checkPin(){
+  const pin=['p0','p1','p2','p3'].map(id=>document.getElementById(id).value).join('');
+  if(pin===PIN){sup=true;closePinModal();applyRole();pushAlert('Supervisor logged in','info');}
+  else{document.getElementById('pin-error').textContent='Incorrect PIN. Please try again.';['p0','p1','p2','p3'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('p0').focus();}
+}
+function logout(){sup=false;pushAlert('Supervisor logged out','info');applyRole();}
+
+['p0','p1','p2','p3'].forEach((id,i)=>{
+  const el=document.getElementById(id);
+  el.addEventListener('input',()=>{if(el.value.length===1&&i<3)document.getElementById('p'+(i+1)).focus();if(i===3&&el.value.length===1)checkPin();});
+  el.addEventListener('keydown',e=>{if(e.key==='Backspace'&&el.value===''&&i>0)document.getElementById('p'+(i-1)).focus();if(e.key==='Enter')checkPin();});
+});
+
+function openTrendModal(id){
+  if(!sup)return;
+  editId=id||null;
+  const t=id?trends.find(x=>x.id===id):null;
+  const type=t?t.type:tab;
+  document.getElementById('t-ttl').textContent=t?'Edit trend':(type==='general'?'Log a general trend':'Log a speciality trend');
+  const b=document.getElementById('t-badge');
+  b.textContent=type==='general'?'General':'Speciality';
+  b.className='tmodal-badge tmodal-badge-'+(type==='general'?'g':'s');
+  document.getElementById('f-title').value=t?t.title:'';
+  document.getElementById('f-notes').value=t?t.notes:'';
+  document.getElementById('f-status').value=t?t.status:'new';
+  document.getElementById('f-owner').value=t?t.owner:'';
+  document.getElementById('spec-field').style.display=type==='speciality'?'':'none';
+  if(t&&t.speciality)document.getElementById('f-spec').value=t.speciality;
+  document.getElementById('trend-overlay').style.display='flex';
+  document.getElementById('trend-overlay').dataset.type=type;
+  document.getElementById('f-title').focus();
+}
+function editTrend(id){openTrendModal(id);}
+function closeTrendModal(){document.getElementById('trend-overlay').style.display='none';}
+function closeTrendBg(e){if(e.target===document.getElementById('trend-overlay'))closeTrendModal();}
+
+function saveTrend(){
+  if(!sup)return;
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){document.getElementById('f-title').style.borderColor='#E24B4A';return;}
+  document.getElementById('f-title').style.borderColor='';
+  const type=document.getElementById('trend-overlay').dataset.type||tab;
+  const status=document.getElementById('f-status').value;
+  const notes=document.getElementById('f-notes').value.trim();
+  const owner=document.getElementById('f-owner').value.trim();
+  const speciality=type==='speciality'?document.getElementById('f-spec').value:null;
+  if(editId){
+    const t=trends.find(x=>x.id===editId),old=t.status;
+    Object.assign(t,{title,status,notes,owner,speciality,ts:Date.now()});
+    if(old!==status)pushAlert(`"${title}" status: ${STATUS[old].label} → ${STATUS[status].label}`,'change');
+    else pushAlert(`Trend updated: "${title}"`,'info');
+  }else{
+    trends.unshift({id:Date.now(),type,title,status,notes,owner,speciality,ts:Date.now()});
+    const sp=speciality?` [${speciality}]`:'';
+    pushAlert(`New ${type} trend: "${title}"${sp} [${STATUS[status].label}]`,type==='speciality'?'spec':'new');
+  }
+  save();renderAll();closeTrendModal();
+}
+
+function deleteTrend(id){
+  if(!sup)return;
+  const t=trends.find(x=>x.id===id);if(!t)return;
+  trends=trends.filter(x=>x.id!==id);
+  pushAlert(`Trend removed: "${t.title}"`,'change');
+  save();renderAll();
+}
+
+function sendNotif(){
+  if(!sup)return;
+  const msg=document.getElementById('notif-msg').value.trim();if(!msg)return;
+  pushAlert(msg,document.getElementById('notif-type').value);
+  document.getElementById('notif-msg').value='';
+}
+
+function addMember(){
+  if(!sup)return;
+  const name=prompt('Enter team member name:');if(!name)return;
+  const init=name.trim().substring(0,2).toUpperCase();
+  const row=document.getElementById('team-row');
+  const av=document.createElement('div');
+  av.className=`avatar ${AVC[mc%AVC.length]}`;av.title=name.trim();av.textContent=init;
+  av.onclick=()=>pingMember(name.trim());row.appendChild(av);mc++;
+  pushAlert(`${name.trim()} added to the team`,'info');
+}
+
+function pingMember(name){if(!sup)return;pushAlert(`Alert sent to ${name}`,'info');}
+
+document.getElementById('notif-msg').addEventListener('keydown',e=>{if(e.key==='Enter')sendNotif();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePinModal();closeTrendModal();}});
+
+applyRole();metrics();
+setInterval(metrics,30000);
+</script>
+</body>
+</html>
