@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ASPH Workflow Status Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<!-- SheetJS for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- jsPDF for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root {
     --bg:#f7f6f3;--surface:#fff;--surface2:#f0efe9;
@@ -39,11 +44,19 @@
   .btn-ghost{border-color:transparent;color:var(--text-3);font-size:12px;padding:5px 10px;}
   .btn-ghost:hover{background:var(--surface2);color:var(--text-2);border-color:var(--border);}
   .btn-sm{font-size:12px;padding:5px 12px;}
+  .btn-excel{background:#1a6e34;color:#fff;border-color:#1a6e34;}
+  .btn-excel:hover{background:#145828;}
+  .btn-pdf{background:#a0251a;color:#fff;border-color:#a0251a;}
+  .btn-pdf:hover{background:#8a1e15;}
+  .export-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0.85rem 1.25rem;margin-bottom:1.5rem;box-shadow:var(--shadow);}
+  .export-label{font-size:13px;font-weight:500;color:var(--text-2);flex:1;}
+  .export-label span{font-size:12px;color:var(--text-3);font-weight:400;margin-left:6px;}
   .tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;gap:0;}
   .tab{font-size:13px;font-weight:500;padding:12px 18px;border-bottom:2px solid transparent;cursor:pointer;color:var(--text-3);transition:color 0.15s,border-color 0.15s;white-space:nowrap;user-select:none;}
   .tab:hover{color:var(--text-2);}
   .tab.active-g{color:var(--blue);border-bottom-color:var(--blue);}
   .tab.active-s{color:var(--purple);border-bottom-color:var(--purple);}
+  .tab.active-e{color:var(--green);border-bottom-color:var(--green);}
   .tab-count{font-size:10px;font-family:'DM Mono',monospace;background:var(--surface2);border-radius:10px;padding:1px 6px;margin-left:6px;color:var(--text-3);}
   main{max-width:960px;margin:0 auto;padding:2rem 1.5rem;}
   .view-banner{background:var(--blue-bg);border:1px solid rgba(26,92,160,0.2);border-radius:var(--radius-lg);padding:0.85rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
@@ -72,6 +85,7 @@
   .trend-info{flex:1;min-width:0;}
   .trend-title{font-size:14px;font-weight:500;}
   .trend-meta{font-size:12px;color:var(--text-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .trend-notes{font-size:12px;color:var(--text-2);margin-top:4px;line-height:1.5;}
   .trend-right{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
   .badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;white-space:nowrap;}
   .badge-new{background:var(--blue-bg);color:var(--blue);}
@@ -115,6 +129,7 @@
   .tmodal-badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:1.25rem;}
   .tmodal-badge-g{background:var(--blue-bg);color:var(--blue);}
   .tmodal-badge-s{background:var(--purple-bg);color:var(--purple);}
+  .tmodal-badge-e{background:var(--green-bg);color:var(--green);}
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:5px;}
   .field input,.field select,.field textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 11px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;transition:border-color 0.15s;}
@@ -122,6 +137,30 @@
   .field textarea{height:75px;resize:vertical;}
   .modal-btns2{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
   .tab-content{display:none;}.tab-content.active{display:block;}
+  /* Voice recorder */
+  .voice-field{position:relative;}
+  .voice-field input,.voice-field textarea{padding-right:38px;}
+  .mic-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-3);padding:2px;border-radius:50%;transition:color 0.15s,background 0.15s;line-height:1;}
+  .mic-btn:hover{color:var(--blue);}
+  .mic-btn.recording{color:#fff;background:var(--red);animation:mic-pulse 1s infinite;}
+  .voice-field textarea ~ .mic-btn{top:12px;transform:none;}
+  @keyframes mic-pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+  .voice-status{font-size:11px;color:var(--text-3);margin-top:4px;min-height:16px;font-family:'DM Mono',monospace;}
+  .voice-status.listening{color:var(--red);}
+  .voice-no-support{font-size:11px;color:var(--amber);margin-top:4px;}
+  /* Report modal */
+  .roverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center;}
+  .rmodal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:420px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.14);}
+  .rmodal h3{font-size:16px;font-weight:600;margin-bottom:0.4rem;}
+  .rmodal-sub{font-size:13px;color:var(--text-3);margin-bottom:1.5rem;}
+  .export-options{display:flex;flex-direction:column;gap:10px;margin-bottom:1.5rem;}
+  .export-option{display:flex;align-items:flex-start;gap:12px;padding:1rem;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;transition:background 0.12s;}
+  .export-option:hover{background:var(--surface2);}
+  .export-option-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .icon-xl{background:#e6f5ed;}
+  .icon-pdf{background:#fce9e6;}
+  .export-option-text strong{display:block;font-size:13px;font-weight:600;margin-bottom:2px;}
+  .export-option-text span{font-size:12px;color:var(--text-3);}
   @media(max-width:640px){
     .metrics{grid-template-columns:repeat(2,minmax(0,1fr));}
     header{padding:10px 1rem;height:auto;}
@@ -137,7 +176,7 @@
   <div class="logo">
     <div class="logo-dot"></div>
     <span class="logo-text">Workflow Tracker</span>
-    <span class="logo-sub">ASPH</span>
+    <span class="logo-sub">MBI · ASPH</span>
   </div>
   <div class="header-right">
     <span class="live-pill">LIVE</span>
@@ -156,12 +195,22 @@
   <div class="tab" id="tab-s" onclick="switchTab('speciality')">
     Speciality Trends <span class="tab-count" id="tc-s">0</span>
   </div>
+  <div class="tab" id="tab-e" onclick="switchTab('ers')">
+    ERS Trends <span class="tab-count" id="tc-e">0</span>
+  </div>
 </div>
 
 <main>
   <div class="view-banner" id="view-banner">
     <span class="view-banner-text"><strong>View only mode.</strong> You can see all trends and activity — only supervisors can make changes.</span>
     <button class="btn btn-sm" onclick="openPinModal()">Supervisor login</button>
+  </div>
+
+  <!-- EXPORT BAR -->
+  <div class="export-bar" id="export-bar" style="display:none;">
+    <span class="export-label">Export your findings <span>— download as Excel or PDF report</span></span>
+    <button class="btn btn-sm btn-excel" onclick="openReportModal('excel')">⬇ Export to Excel</button>
+    <button class="btn btn-sm btn-pdf" onclick="openReportModal('pdf')">⬇ Export to PDF</button>
   </div>
 
   <!-- GENERAL TAB -->
@@ -177,7 +226,7 @@
         <span class="panel-title">General trends</span>
         <span class="panel-meta" id="g-count">0 items</span>
       </div>
-      <div id="g-list"><div class="empty-state" id="g-empty">No general trends logged yet. Supervisors can add trends using the "+ Add trend" button.</div></div>
+      <div id="g-list"><div class="empty-state" id="g-empty">No general trends logged yet. Log in as supervisor to start adding trends.</div></div>
     </div>
   </div>
 
@@ -201,7 +250,24 @@
         <span class="panel-title">Speciality trends</span>
         <span class="panel-meta" id="s-count">0 items</span>
       </div>
-      <div id="s-list"><div class="empty-state" id="s-empty">No speciality trends logged yet. Supervisors can add trends using the "+ Add trend" button.</div></div>
+      <div id="s-list"><div class="empty-state" id="s-empty">No speciality trends logged yet. Log in as supervisor to start adding trends.</div></div>
+    </div>
+  </div>
+
+  <!-- ERS TAB -->
+  <div class="tab-content" id="content-ers">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="em-total">0</div><div class="metric-sub">ERS trends</div></div>
+      <div class="metric"><div class="metric-label">Active</div><div class="metric-val val-green" id="em-active">0</div><div class="metric-sub">in progress</div></div>
+      <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val val-amber" id="em-monitoring">0</div><div class="metric-sub">being watched</div></div>
+      <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val val-gray" id="em-resolved">0</div><div class="metric-sub">closed out</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">ERS trends</span>
+        <span class="panel-meta" id="e-count">0 items</span>
+      </div>
+      <div id="e-list"><div class="empty-state" id="e-empty">No ERS trends logged yet. Log in as supervisor to start adding trends.</div></div>
     </div>
   </div>
 
@@ -268,8 +334,22 @@
   <div class="tmodal">
     <h3 id="t-ttl">Log a trend</h3>
     <span class="tmodal-badge" id="t-badge">General</span>
-    <div class="field"><label>Trend title</label><input id="f-title" placeholder="e.g. Increased referral delays"/></div>
-    <div class="field"><label>Notes / observations</label><textarea id="f-notes" placeholder="Describe the trend, data points, context..."></textarea></div>
+    <div class="field">
+      <label>Trend title</label>
+      <div class="voice-field">
+        <input id="f-title" placeholder="e.g. Increased referral delays"/>
+        <button class="mic-btn" id="mic-title" type="button" title="Click to dictate title" onclick="toggleVoice('f-title','mic-title','vs-title')">🎤</button>
+      </div>
+      <div class="voice-status" id="vs-title"></div>
+    </div>
+    <div class="field">
+      <label>Notes / observations</label>
+      <div class="voice-field">
+        <textarea id="f-notes" placeholder="Describe the trend, data points, context..."></textarea>
+        <button class="mic-btn" id="mic-notes" type="button" title="Click to dictate notes" onclick="toggleVoice('f-notes','mic-notes','vs-notes')">🎤</button>
+      </div>
+      <div class="voice-status" id="vs-notes"></div>
+    </div>
     <div class="field"><label>Status</label>
       <select id="f-status">
         <option value="new">New</option>
@@ -287,6 +367,46 @@
   </div>
 </div>
 
+<!-- REPORT / EXPORT MODAL -->
+<div class="roverlay" id="report-overlay" onclick="closeReportBg(event)">
+  <div class="rmodal">
+    <h3>Export findings</h3>
+    <p class="rmodal-sub">Choose a format to download your trends as a report.</p>
+    <div class="field">
+      <label>Project / report title</label>
+      <input id="r-title" placeholder="e.g. ASPH Cardiology Review Q1 2026" />
+    </div>
+    <div class="field">
+      <label>Include</label>
+      <select id="r-scope">
+        <option value="all">All trends (general + speciality + ERS)</option>
+        <option value="general">General trends only</option>
+        <option value="speciality">Speciality trends only</option>
+        <option value="ers">ERS trends only</option>
+      </select>
+    </div>
+    <div class="export-options">
+      <div class="export-option" onclick="doExport('excel')">
+        <div class="export-option-icon icon-xl">📊</div>
+        <div class="export-option-text">
+          <strong>Export to Excel (.xlsx)</strong>
+          <span>All trends in a spreadsheet — easy to share with your team or filter further</span>
+        </div>
+      </div>
+      <div class="export-option" onclick="doExport('pdf')">
+        <div class="export-option-icon icon-pdf">📄</div>
+        <div class="export-option-text">
+          <strong>Export to PDF report</strong>
+          <span>A formatted report with summary metrics — ready to share with managers or trusts</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeReportModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const PIN='1010';
 const SPECS=['Breast','Cardiology','Colorectal','Dermatology','Ear, Nose and Throat','Endocrinology','Gastroenterology','General Surgery','Gynaecology','Haematology','Maxillofacial Surgery','Neurology','Ophthalmology','Orthodontics','Orthopaedics','Paediatrics','Pain Management','Renal','Respiratory','Rheumatology','Spinal Surgery','Upper Gastrointestinal Surgery','Urology','Vascular'];
@@ -295,14 +415,14 @@ const AMETA={new:['ai-new','N'],change:['ai-change','~'],resolved:['ai-resolved'
 const AVC=['av-0','av-1','av-2','av-3','av-4'];
 
 let sup=false,tab='general',filt='all',editId=null,mc=4;
-let trends=JSON.parse(localStorage.getItem('wft2-trends')||'[]');
-let alerts=JSON.parse(localStorage.getItem('wft2-alerts')||'[]');
+let trends=JSON.parse(localStorage.getItem('wft3-trends')||'[]');
+let alerts=JSON.parse(localStorage.getItem('wft3-alerts')||'[]');
 
-function save(){localStorage.setItem('wft2-trends',JSON.stringify(trends));localStorage.setItem('wft2-alerts',JSON.stringify(alerts));}
+function save(){localStorage.setItem('wft3-trends',JSON.stringify(trends));localStorage.setItem('wft3-alerts',JSON.stringify(alerts));}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function ago(ts){const s=Math.floor((Date.now()-ts)/1000);if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
+function fmtDate(ts){return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 
-// Init dropdowns
 (function(){
   const fs=document.getElementById('f-spec'),ss=document.getElementById('spec-filter-sel');
   SPECS.forEach(s=>{
@@ -315,9 +435,14 @@ function switchTab(t){
   tab=t;
   document.getElementById('content-general').classList.toggle('active',t==='general');
   document.getElementById('content-speciality').classList.toggle('active',t==='speciality');
+  document.getElementById('content-ers').classList.toggle('active',t==='ers');
   document.getElementById('tab-g').className='tab'+(t==='general'?' active-g':'');
   document.getElementById('tab-s').className='tab'+(t==='speciality'?' active-s':'');
-  if(sup)document.getElementById('add-btn').textContent=t==='general'?'+ Add general trend':'+ Add speciality trend';
+  document.getElementById('tab-e').className='tab'+(t==='ers'?' active-e':'');
+  if(sup){
+    const labels={general:'+ Add general trend',speciality:'+ Add speciality trend',ers:'+ Add ERS trend'};
+    document.getElementById('add-btn').textContent=labels[t];
+  }
 }
 
 function setFilter(v){
@@ -328,7 +453,7 @@ function setFilter(v){
 }
 
 function metrics(){
-  const g=trends.filter(t=>t.type==='general'),s=trends.filter(t=>t.type==='speciality');
+  const g=trends.filter(t=>t.type==='general'),s=trends.filter(t=>t.type==='speciality'),e=trends.filter(t=>t.type==='ers');
   document.getElementById('gm-total').textContent=g.length;
   document.getElementById('gm-active').textContent=g.filter(t=>t.status==='active').length;
   document.getElementById('gm-monitoring').textContent=g.filter(t=>t.status==='monitoring').length;
@@ -337,12 +462,18 @@ function metrics(){
   document.getElementById('sm-active').textContent=s.filter(t=>t.status==='active').length;
   document.getElementById('sm-monitoring').textContent=s.filter(t=>t.status==='monitoring').length;
   document.getElementById('sm-resolved').textContent=s.filter(t=>t.status==='resolved').length;
+  document.getElementById('em-total').textContent=e.length;
+  document.getElementById('em-active').textContent=e.filter(t=>t.status==='active').length;
+  document.getElementById('em-monitoring').textContent=e.filter(t=>t.status==='monitoring').length;
+  document.getElementById('em-resolved').textContent=e.filter(t=>t.status==='resolved').length;
   document.getElementById('tc-g').textContent=g.length;
   document.getElementById('tc-s').textContent=s.length;
+  document.getElementById('tc-e').textContent=e.length;
   document.getElementById('g-count').textContent=g.length+' item'+(g.length!==1?'s':'');
   document.getElementById('s-count').textContent=s.length+' item'+(s.length!==1?'s':'');
+  document.getElementById('e-count').textContent=e.length+' item'+(e.length!==1?'s':'');
   document.getElementById('last-upd').textContent='Updated '+ago(Date.now());
-  document.getElementById('footer-ts').textContent='ASPH Workflow Tracker · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('footer-ts').textContent='MBI · ASPH Workflow Tracker · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
 function mkRow(t){
@@ -350,7 +481,7 @@ function mkRow(t){
   row.className='trend-row';
   const sb=t.speciality?`<span class="badge badge-spec">${esc(t.speciality)}</span>`:'';
   const ac=sup?`<button class="icon-btn" onclick="editTrend(${t.id})">✎</button><button class="icon-btn" onclick="deleteTrend(${t.id})">✕</button>`:'';
-  row.innerHTML=`<div class="status-dot ${m.dot}"></div><div class="trend-info"><div class="trend-title">${esc(t.title)}</div><div class="trend-meta">${t.owner?esc(t.owner)+' · ':''}${ago(t.ts)}${t.notes?' · '+esc(t.notes.substring(0,55))+(t.notes.length>55?'…':''):''}</div></div><div class="trend-right">${sb}<span class="badge ${m.badge}">${m.label}</span>${ac}</div>`;
+  row.innerHTML=`<div class="status-dot ${m.dot}"></div><div class="trend-info"><div class="trend-title">${esc(t.title)}</div><div class="trend-meta">${t.owner?esc(t.owner)+' · ':''}${fmtDate(t.ts)}</div>${t.notes?`<div class="trend-notes">${esc(t.notes)}</div>`:''}</div><div class="trend-right">${sb}<span class="badge ${m.badge}">${m.label}</span>${ac}</div>`;
   return row;
 }
 
@@ -373,7 +504,16 @@ function renderS(){
   metrics();
 }
 
-function renderAll(){renderG();renderS();}
+function renderE(){
+  const l=document.getElementById('e-list');
+  l.querySelectorAll('.trend-row').forEach(e=>e.remove());
+  const e=trends.filter(t=>t.type==='ers');
+  document.getElementById('e-empty').style.display=e.length?'none':'';
+  e.forEach(t=>l.appendChild(mkRow(t)));
+  metrics();
+}
+
+function renderAll(){renderG();renderS();renderE();}
 
 function renderAlerts(){
   const l=document.getElementById('alert-list');
@@ -394,12 +534,16 @@ function clearAlerts(){if(!sup)return;alerts=[];save();renderAlerts();}
 
 function applyRole(){
   document.getElementById('view-banner').style.display=sup?'none':'flex';
+  document.getElementById('export-bar').style.display=sup?'':'none';
   document.getElementById('role-pill').textContent=sup?'Supervisor':'View only';
   document.getElementById('role-pill').className='role-pill '+(sup?'role-supervisor':'role-viewer');
   document.getElementById('login-btn').style.display=sup?'none':'';
   document.getElementById('logout-btn').style.display=sup?'':'none';
   document.getElementById('add-btn').style.display=sup?'':'none';
-  if(sup)document.getElementById('add-btn').textContent=tab==='general'?'+ Add general trend':'+ Add speciality trend';
+  if(sup){
+    const labels={general:'+ Add general trend',speciality:'+ Add speciality trend',ers:'+ Add ERS trend'};
+    document.getElementById('add-btn').textContent=labels[tab]||'+ Add trend';
+  }
   document.getElementById('clear-btn').style.display=sup?'':'none';
   document.getElementById('add-member-btn').style.display=sup?'':'none';
   document.getElementById('notify-panel').style.display=sup?'':'none';
@@ -427,10 +571,13 @@ function openTrendModal(id){
   editId=id||null;
   const t=id?trends.find(x=>x.id===id):null;
   const type=t?t.type:tab;
-  document.getElementById('t-ttl').textContent=t?'Edit trend':(type==='general'?'Log a general trend':'Log a speciality trend');
+  const ttls={general:'Log a general trend',speciality:'Log a speciality trend',ers:'Log an ERS trend'};
+  const badgeCls={general:'tmodal-badge-g',speciality:'tmodal-badge-s',ers:'tmodal-badge-e'};
+  const badgeTxt={general:'General',speciality:'Speciality',ers:'ERS'};
+  document.getElementById('t-ttl').textContent=t?'Edit trend':ttls[type];
   const b=document.getElementById('t-badge');
-  b.textContent=type==='general'?'General':'Speciality';
-  b.className='tmodal-badge tmodal-badge-'+(type==='general'?'g':'s');
+  b.textContent=t?(badgeTxt[t.type]||t.type):badgeTxt[type];
+  b.className='tmodal-badge '+(t?badgeCls[t.type]:badgeCls[type]);
   document.getElementById('f-title').value=t?t.title:'';
   document.getElementById('f-notes').value=t?t.notes:'';
   document.getElementById('f-status').value=t?t.status:'new';
@@ -493,11 +640,272 @@ function addMember(){
   av.onclick=()=>pingMember(name.trim());row.appendChild(av);mc++;
   pushAlert(`${name.trim()} added to the team`,'info');
 }
-
 function pingMember(name){if(!sup)return;pushAlert(`Alert sent to ${name}`,'info');}
 
+// EXPORT / REPORT
+function openReportModal(type){document.getElementById('r-title').value='';document.getElementById('report-overlay').style.display='flex';}
+function closeReportModal(){document.getElementById('report-overlay').style.display='none';}
+function closeReportBg(e){if(e.target===document.getElementById('report-overlay'))closeReportModal();}
+
+function getExportTrends(){
+  const scope=document.getElementById('r-scope').value;
+  if(scope==='general')return trends.filter(t=>t.type==='general');
+  if(scope==='speciality')return trends.filter(t=>t.type==='speciality');
+  if(scope==='ers')return trends.filter(t=>t.type==='ers');
+  return trends;
+}
+
+function doExport(format){
+  const title=document.getElementById('r-title').value.trim()||'MBI Workflow Trends Report';
+  const data=getExportTrends();
+  if(data.length===0){alert('No trends to export. Please add some trends first.');return;}
+  if(format==='excel') exportExcel(title,data);
+  else exportPDF(title,data);
+  closeReportModal();
+}
+
+function exportExcel(title,data){
+  const wb=XLSX.utils.book_new();
+  // Summary sheet
+  const g=data.filter(t=>t.type==='general'),s=data.filter(t=>t.type==='speciality'),e=data.filter(t=>t.type==='ers');
+  const summary=[
+    ['MBI Workflow Tracker — '+title],
+    ['Generated',fmtDate(Date.now())],
+    [''],
+    ['SUMMARY'],
+    ['Total Trends',data.length],
+    ['General Trends',g.length],
+    ['Speciality Trends',s.length],
+    ['ERS Trends',e.length],
+    [''],
+    ['BY STATUS'],
+    ['New',data.filter(t=>t.status==='new').length],
+    ['Active',data.filter(t=>t.status==='active').length],
+    ['Monitoring',data.filter(t=>t.status==='monitoring').length],
+    ['Resolved',data.filter(t=>t.status==='resolved').length],
+  ];
+  const ws1=XLSX.utils.aoa_to_sheet(summary);
+  ws1['!cols']=[{wch:25},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Summary');
+  // All trends sheet
+  const typeLabel={general:'General',speciality:'Speciality',ers:'ERS'};
+  const rows=[['Type','Title','Status','Speciality','Owner','Notes','Date Logged']];
+  data.forEach(t=>{
+    rows.push([
+      typeLabel[t.type]||t.type,
+      t.title,
+      STATUS[t.status].label,
+      t.speciality||'—',
+      t.owner||'—',
+      t.notes||'—',
+      fmtDate(t.ts)
+    ]);
+  });
+  const ws2=XLSX.utils.aoa_to_sheet(rows);
+  ws2['!cols']=[{wch:12},{wch:35},{wch:12},{wch:28},{wch:18},{wch:50},{wch:22}];
+  XLSX.utils.book_append_sheet(wb,ws2,'All Trends');
+  // General sheet
+  if(g.length){
+    const gr=[['Title','Status','Owner','Notes','Date Logged']];
+    g.forEach(t=>gr.push([t.title,STATUS[t.status].label,t.owner||'—',t.notes||'—',fmtDate(t.ts)]));
+    const ws3=XLSX.utils.aoa_to_sheet(gr);
+    ws3['!cols']=[{wch:35},{wch:12},{wch:18},{wch:55},{wch:22}];
+    XLSX.utils.book_append_sheet(wb,ws3,'General Trends');
+  }
+  // Speciality sheet
+  if(s.length){
+    const sr=[['Speciality','Title','Status','Owner','Notes','Date Logged']];
+    s.forEach(t=>sr.push([t.speciality||'—',t.title,STATUS[t.status].label,t.owner||'—',t.notes||'—',fmtDate(t.ts)]));
+    const ws4=XLSX.utils.aoa_to_sheet(sr);
+    ws4['!cols']=[{wch:28},{wch:35},{wch:12},{wch:18},{wch:55},{wch:22}];
+    XLSX.utils.book_append_sheet(wb,ws4,'Speciality Trends');
+  }
+  // ERS sheet
+  if(e.length){
+    const er=[['Title','Status','Owner','Notes','Date Logged']];
+    e.forEach(t=>er.push([t.title,STATUS[t.status].label,t.owner||'—',t.notes||'—',fmtDate(t.ts)]));
+    const ws5=XLSX.utils.aoa_to_sheet(er);
+    ws5['!cols']=[{wch:35},{wch:12},{wch:18},{wch:55},{wch:22}];
+    XLSX.utils.book_append_sheet(wb,ws5,'ERS Trends');
+  }
+  const fname=title.replace(/[^a-z0-9]/gi,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  XLSX.writeFile(wb,fname);
+}
+
+function exportPDF(title,data){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const g=data.filter(t=>t.type==='general'),s=data.filter(t=>t.type==='speciality'),e=data.filter(t=>t.type==='ers');
+  const pageW=doc.internal.pageSize.getWidth();
+  const now=fmtDate(Date.now());
+  // Header
+  doc.setFillColor(26,28,22);
+  doc.rect(0,0,pageW,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14);doc.setFont('helvetica','bold');
+  doc.text('MBI Workflow Tracker',14,10);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('Ashford & St Peters Hospitals NHS Foundation Trust',14,16);
+  doc.setTextColor(26,28,22);
+  // Title & date
+  doc.setFontSize(18);doc.setFont('helvetica','bold');
+  doc.text(title,14,34);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.setTextColor(100,100,100);
+  doc.text('Generated: '+now,14,40);
+  doc.setTextColor(26,28,22);
+  // Summary boxes
+  doc.setFontSize(11);doc.setFont('helvetica','bold');
+  doc.text('Summary',14,52);
+  const boxes=[
+    {label:'Total',val:data.length,col:[240,240,235]},
+    {label:'Active',val:data.filter(t=>t.status==='active').length,col:[230,245,237]},
+    {label:'Monitoring',val:data.filter(t=>t.status==='monitoring').length,col:[254,243,226]},
+    {label:'Resolved',val:data.filter(t=>t.status==='resolved').length,col:[240,239,233]},
+  ];
+  boxes.forEach((b,i)=>{
+    const x=14+(i*47);
+    doc.setFillColor(...b.col);
+    doc.roundedRect(x,56,43,18,2,2,'F');
+    doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(26,28,22);
+    doc.text(String(b.val),x+5,67);
+    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);
+    doc.text(b.label,x+5,72);
+  });
+  doc.setTextColor(26,28,22);
+  let y=84;
+  // General trends table
+  if(g.length){
+    doc.setFontSize(11);doc.setFont('helvetica','bold');
+    doc.text('General Trends ('+g.length+')',14,y);y+=4;
+    doc.autoTable({
+      startY:y,
+      head:[['Title','Status','Owner','Notes','Date']],
+      body:g.map(t=>[t.title,STATUS[t.status].label,t.owner||'—',t.notes?t.notes.substring(0,80)+(t.notes.length>80?'…':''):'—',fmtDate(t.ts)]),
+      styles:{fontSize:8,cellPadding:3},
+      headStyles:{fillColor:[26,28,22],textColor:255,fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:42},1:{cellWidth:20},2:{cellWidth:22},3:{cellWidth:65},4:{cellWidth:30}},
+      alternateRowStyles:{fillColor:[247,246,243]},
+      margin:{left:14,right:14},
+    });
+    y=doc.lastAutoTable.finalY+10;
+  }
+  // Speciality trends table
+  if(s.length){
+    if(y>240){doc.addPage();y=20;}
+    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(26,28,22);
+    doc.text('Speciality Trends ('+s.length+')',14,y);y+=4;
+    doc.autoTable({
+      startY:y,
+      head:[['Speciality','Title','Status','Owner','Notes','Date']],
+      body:s.map(t=>[t.speciality||'—',t.title,STATUS[t.status].label,t.owner||'—',t.notes?t.notes.substring(0,60)+(t.notes.length>60?'…':''):'—',fmtDate(t.ts)]),
+      styles:{fontSize:8,cellPadding:3},
+      headStyles:{fillColor:[91,53,176],textColor:255,fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:32},1:{cellWidth:35},2:{cellWidth:18},3:{cellWidth:20},4:{cellWidth:50},5:{cellWidth:24}},
+      alternateRowStyles:{fillColor:[247,246,243]},
+      margin:{left:14,right:14},
+    });
+  }
+  // ERS trends table
+  if(e.length){
+    if(y>240){doc.addPage();y=20;}
+    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(26,28,22);
+    doc.text('ERS Trends ('+e.length+')',14,y);y+=4;
+    doc.autoTable({
+      startY:y,
+      head:[['Title','Status','Owner','Notes','Date']],
+      body:e.map(t=>[t.title,STATUS[t.status].label,t.owner||'—',t.notes?t.notes.substring(0,80)+(t.notes.length>80?'…':''):'—',fmtDate(t.ts)]),
+      styles:{fontSize:8,cellPadding:3},
+      headStyles:{fillColor:[26,138,90],textColor:255,fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:42},1:{cellWidth:20},2:{cellWidth:22},3:{cellWidth:65},4:{cellWidth:30}},
+      alternateRowStyles:{fillColor:[247,246,243]},
+      margin:{left:14,right:14},
+    });
+  }
+  // Footer on all pages
+  const pageCount=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);doc.setTextColor(160,160,160);
+    doc.text('MBI Confidential — '+title+' — Page '+i+' of '+pageCount,14,doc.internal.pageSize.getHeight()-8);
+  }
+  const fname=title.replace(/[^a-z0-9]/gi,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
+  doc.save(fname);
+}
+
+// VOICE RECOGNITION
+let activeRecognition=null;
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+function toggleVoice(fieldId,btnId,statusId){
+  if(!SpeechRecognition){
+    document.getElementById(statusId).textContent='Voice input not supported in this browser. Please use Chrome.';
+    document.getElementById(statusId).className='voice-status';
+    return;
+  }
+  const btn=document.getElementById(btnId);
+  const status=document.getElementById(statusId);
+  // If already recording this field, stop it
+  if(activeRecognition&&btn.classList.contains('recording')){
+    activeRecognition.stop();
+    return;
+  }
+  // Stop any other active recording
+  if(activeRecognition){activeRecognition.stop();}
+  // Reset all mic buttons
+  document.querySelectorAll('.mic-btn').forEach(b=>{b.classList.remove('recording');});
+  document.querySelectorAll('.voice-status').forEach(s=>{s.textContent='';s.className='voice-status';});
+  const recognition=new SpeechRecognition();
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.lang='en-GB';
+  activeRecognition=recognition;
+  btn.classList.add('recording');
+  btn.textContent='⏹';
+  status.textContent='🔴 Listening... speak now';
+  status.className='voice-status listening';
+  let finalText='';
+  const field=document.getElementById(fieldId);
+  const existing=field.value;
+  recognition.onresult=function(e){
+    let interim='';
+    finalText='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)finalText+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    field.value=(existing?existing+' ':'')+finalText+interim;
+  };
+  recognition.onend=function(){
+    activeRecognition=null;
+    btn.classList.remove('recording');
+    btn.textContent='🎤';
+    if(finalText){
+      field.value=(existing?existing+' ':'')+finalText.trim();
+      status.textContent='✓ Added to field';
+      status.className='voice-status';
+      setTimeout(()=>{status.textContent='';},2500);
+    } else {
+      status.textContent='';
+    }
+  };
+  recognition.onerror=function(e){
+    activeRecognition=null;
+    btn.classList.remove('recording');
+    btn.textContent='🎤';
+    if(e.error==='not-allowed'){
+      status.textContent='Microphone access denied — please allow microphone in Chrome settings.';
+    } else {
+      status.textContent='Could not hear anything. Try again.';
+    }
+    status.className='voice-status';
+    setTimeout(()=>{status.textContent='';},3000);
+  };
+  recognition.start();
+}
+
 document.getElementById('notif-msg').addEventListener('keydown',e=>{if(e.key==='Enter')sendNotif();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePinModal();closeTrendModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePinModal();closeTrendModal();closeReportModal();}});
 
 applyRole();metrics();
 setInterval(metrics,30000);
