@@ -1,318 +1,544 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ASPH Workflow Status Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<!-- SheetJS for Excel export -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MBI Project Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- jsPDF for PDF export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <style>
-  :root {
-    --bg:#f7f6f3;--surface:#fff;--surface2:#f0efe9;
-    --border:rgba(0,0,0,0.09);--border-mid:rgba(0,0,0,0.15);
-    --text:#1a1916;--text-2:#6b6a65;--text-3:#a09f99;
-    --green:#1a8a5a;--green-bg:#e6f5ed;
-    --amber:#a05c0a;--amber-bg:#fef3e2;
-    --blue:#1a5ca0;--blue-bg:#e6f0fc;
-    --purple:#5b35b0;--purple-bg:#eeebff;
-    --gray:#6b6a65;--gray-bg:#f0efe9;
-    --red:#a0251a;--red-bg:#fce9e6;
-    --radius:10px;--radius-lg:14px;
-    --shadow:0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
-  }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
-  header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:12px;}
-  .logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
-  .logo-dot{width:9px;height:9px;border-radius:50%;background:var(--green);animation:pulse 2.5s infinite;}
-  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
-  .logo-text{font-size:15px;font-weight:600;letter-spacing:-0.3px;}
-  .logo-sub{font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;margin-left:4px;}
-  .header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .live-pill{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;background:var(--green-bg);color:var(--green);font-family:'DM Mono',monospace;}
-  .role-pill{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;}
-  .role-supervisor{background:var(--purple-bg);color:var(--purple);}
-  .role-viewer{background:var(--gray-bg);color:var(--gray);}
-  .btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:7px 14px;border-radius:var(--radius);border:1px solid var(--border-mid);background:var(--surface);color:var(--text);cursor:pointer;transition:background 0.15s;white-space:nowrap;}
-  .btn:hover{background:var(--surface2);}
-  .btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
-  .btn-primary:hover{background:#333;}
-  .btn-ghost{border-color:transparent;color:var(--text-3);font-size:12px;padding:5px 10px;}
-  .btn-ghost:hover{background:var(--surface2);color:var(--text-2);border-color:var(--border);}
-  .btn-sm{font-size:12px;padding:5px 12px;}
-  .btn-excel{background:#1a6e34;color:#fff;border-color:#1a6e34;}
-  .btn-excel:hover{background:#145828;}
-  .btn-pdf{background:#a0251a;color:#fff;border-color:#a0251a;}
-  .btn-pdf:hover{background:#8a1e15;}
-  .export-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0.85rem 1.25rem;margin-bottom:1.5rem;box-shadow:var(--shadow);}
-  .export-label{font-size:13px;font-weight:500;color:var(--text-2);flex:1;}
-  .export-label span{font-size:12px;color:var(--text-3);font-weight:400;margin-left:6px;}
-  .tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;gap:0;}
-  .tab{font-size:13px;font-weight:500;padding:12px 18px;border-bottom:2px solid transparent;cursor:pointer;color:var(--text-3);transition:color 0.15s,border-color 0.15s;white-space:nowrap;user-select:none;}
-  .tab:hover{color:var(--text-2);}
-  .tab.active-g{color:var(--blue);border-bottom-color:var(--blue);}
-  .tab.active-s{color:var(--purple);border-bottom-color:var(--purple);}
-  .tab.active-e{color:var(--green);border-bottom-color:var(--green);}
-  .tab-count{font-size:10px;font-family:'DM Mono',monospace;background:var(--surface2);border-radius:10px;padding:1px 6px;margin-left:6px;color:var(--text-3);}
-  main{max-width:960px;margin:0 auto;padding:2rem 1.5rem;}
-  .view-banner{background:var(--blue-bg);border:1px solid rgba(26,92,160,0.2);border-radius:var(--radius-lg);padding:0.85rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-  .view-banner-text{font-size:13px;color:var(--blue);}
-  .view-banner-text strong{font-weight:600;}
-  .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:2rem;}
-  .metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.1rem;box-shadow:var(--shadow);}
-  .metric-label{font-size:11px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;}
-  .metric-val{font-size:28px;font-weight:600;letter-spacing:-1px;line-height:1;}
-  .metric-sub{font-size:11px;color:var(--text-3);margin-top:3px;}
-  .val-green{color:var(--green);}.val-amber{color:var(--amber);}.val-gray{color:var(--gray);}
-  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center;}
-  .filter-label{font-size:12px;color:var(--text-3);}
-  .filter-chip{font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--border-mid);background:var(--surface);color:var(--text-2);cursor:pointer;transition:background 0.12s;white-space:nowrap;}
-  .filter-chip.active{background:var(--purple-bg);border-color:rgba(91,53,176,0.3);color:var(--purple);font-weight:500;}
-  .filter-select{font-family:'DM Sans',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;cursor:pointer;}
-  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);margin-bottom:1.25rem;overflow:hidden;}
-  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.25rem;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap;}
-  .panel-title{font-size:13px;font-weight:600;letter-spacing:-0.2px;}
-  .panel-meta{font-size:12px;color:var(--text-3);font-family:'DM Mono',monospace;}
-  .trend-row{display:flex;align-items:flex-start;gap:12px;padding:0.9rem 1.25rem;border-bottom:1px solid var(--border);transition:background 0.12s;}
-  .trend-row:last-child{border-bottom:none;}
-  .trend-row:hover{background:var(--surface2);}
-  .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;}
-  .dot-new{background:var(--blue);}.dot-active{background:var(--green);}.dot-monitoring{background:var(--amber);}.dot-resolved{background:var(--gray);}
-  .trend-info{flex:1;min-width:0;}
-  .trend-title{font-size:14px;font-weight:500;}
-  .trend-meta{font-size:12px;color:var(--text-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .trend-notes{font-size:12px;color:var(--text-2);margin-top:4px;line-height:1.5;}
-  .trend-right{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
-  .badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;white-space:nowrap;}
-  .badge-new{background:var(--blue-bg);color:var(--blue);}
-  .badge-active{background:var(--green-bg);color:var(--green);}
-  .badge-monitoring{background:var(--amber-bg);color:var(--amber);}
-  .badge-resolved{background:var(--gray-bg);color:var(--gray);}
-  .badge-spec{background:var(--purple-bg);color:var(--purple);font-size:10px;}
-  .icon-btn{background:none;border:1px solid transparent;border-radius:6px;cursor:pointer;color:var(--text-3);padding:4px 6px;font-size:13px;line-height:1;transition:background 0.12s,color 0.12s;}
-  .icon-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text-2);}
-  .empty-state{padding:2.5rem 1.25rem;text-align:center;color:var(--text-3);font-size:13px;}
-  .alert-row{display:flex;align-items:flex-start;gap:10px;padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);}
-  .alert-row:last-child{border-bottom:none;}
-  .alert-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;margin-top:1px;font-family:'DM Mono',monospace;}
-  .ai-new{background:var(--blue-bg);color:var(--blue);}.ai-change{background:var(--amber-bg);color:var(--amber);}.ai-resolved{background:var(--green-bg);color:var(--green);}.ai-info{background:var(--gray-bg);color:var(--gray);}.ai-spec{background:var(--purple-bg);color:var(--purple);}
-  .alert-text{flex:1;font-size:13px;}
-  .alert-time{font-size:11px;color:var(--text-3);margin-top:1px;font-family:'DM Mono',monospace;}
-  .alert-del{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:14px;padding:2px 4px;border-radius:4px;}
-  .alert-del:hover{color:var(--text-2);background:var(--surface2);}
-  .team-area{display:flex;align-items:center;gap:8px;padding:0.9rem 1.25rem;flex-wrap:wrap;}
-  .avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border);transition:transform 0.15s;}
-  .avatar:hover{transform:scale(1.1);}
-  .online{box-shadow:0 0 0 2px var(--green);}
-  .av-0{background:#e8e6ff;color:#3d35a0;}.av-1{background:var(--green-bg);color:var(--green);}.av-2{background:var(--amber-bg);color:var(--amber);}.av-3{background:var(--red-bg);color:var(--red);}.av-4{background:var(--blue-bg);color:var(--blue);}
-  .notify-area{padding:0.9rem 1.25rem;display:flex;gap:8px;flex-wrap:wrap;}
-  .notif-input{flex:1;min-width:200px;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 12px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;}
-  .notif-input:focus{border-color:var(--text);}
-  .notif-select{font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;cursor:pointer;}
-  .footer-note{text-align:center;font-size:11px;color:var(--text-3);padding:1.5rem 0 0.5rem;font-family:'DM Mono',monospace;}
-  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center;}
-  .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:360px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.14);}
-  .modal h3{font-size:16px;font-weight:600;margin-bottom:0.4rem;}
-  .modal-sub{font-size:13px;color:var(--text-3);margin-bottom:1.5rem;}
-  .pin-row{display:flex;gap:10px;justify-content:center;margin-bottom:1.25rem;}
-  .pin-digit{width:56px;height:64px;font-size:26px;font-weight:600;font-family:'DM Mono',monospace;text-align:center;border:1.5px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;transition:border-color 0.15s;}
-  .pin-digit:focus{border-color:var(--text);}
-  .pin-error{font-size:12px;color:var(--red);text-align:center;margin-bottom:1rem;min-height:18px;}
-  .modal-btns{display:flex;gap:8px;justify-content:flex-end;}
-  .toverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:200;align-items:center;justify-content:center;}
-  .tmodal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.75rem;width:440px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.12);max-height:90vh;overflow-y:auto;}
-  .tmodal h3{font-size:16px;font-weight:600;margin-bottom:4px;}
-  .tmodal-badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:1.25rem;}
-  .tmodal-badge-g{background:var(--blue-bg);color:var(--blue);}
-  .tmodal-badge-s{background:var(--purple-bg);color:var(--purple);}
-  .tmodal-badge-e{background:var(--green-bg);color:var(--green);}
-  .field{margin-bottom:14px;}
-  .field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:5px;}
-  .field input,.field select,.field textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 11px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;transition:border-color 0.15s;}
-  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--text);}
-  .field textarea{height:75px;resize:vertical;}
-  .modal-btns2{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
-  .tab-content{display:none;}.tab-content.active{display:block;}
-  /* Voice recorder */
-  .voice-field{position:relative;}
-  .voice-field input,.voice-field textarea{padding-right:38px;}
-  .mic-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-3);padding:2px;border-radius:50%;transition:color 0.15s,background 0.15s;line-height:1;}
-  .mic-btn:hover{color:var(--blue);}
-  .mic-btn.recording{color:#fff;background:var(--red);animation:mic-pulse 1s infinite;}
-  .voice-field textarea ~ .mic-btn{top:12px;transform:none;}
-  @keyframes mic-pulse{0%,100%{opacity:1}50%{opacity:0.6}}
-  .voice-status{font-size:11px;color:var(--text-3);margin-top:4px;min-height:16px;font-family:'DM Mono',monospace;}
-  .voice-status.listening{color:var(--red);}
-  .voice-no-support{font-size:11px;color:var(--amber);margin-top:4px;}
-  /* Report modal */
-  .roverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center;}
-  .rmodal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:420px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.14);}
-  .rmodal h3{font-size:16px;font-weight:600;margin-bottom:0.4rem;}
-  .rmodal-sub{font-size:13px;color:var(--text-3);margin-bottom:1.5rem;}
-  .export-options{display:flex;flex-direction:column;gap:10px;margin-bottom:1.5rem;}
-  .export-option{display:flex;align-items:flex-start;gap:12px;padding:1rem;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;transition:background 0.12s;}
-  .export-option:hover{background:var(--surface2);}
-  .export-option-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-  .icon-xl{background:#e6f5ed;}
-  .icon-pdf{background:#fce9e6;}
-  .export-option-text strong{display:block;font-size:13px;font-weight:600;margin-bottom:2px;}
-  .export-option-text span{font-size:12px;color:var(--text-3);}
-  @media(max-width:640px){
-    .metrics{grid-template-columns:repeat(2,minmax(0,1fr));}
-    header{padding:10px 1rem;height:auto;}
-    .tab-bar{padding:0 1rem;}
-    main{padding:1.25rem 1rem;}
-    .pin-digit{width:44px;height:54px;font-size:20px;}
-  }
+:root{
+  --bg:#f7f6f3;--surface:#fff;--surface2:#f0efe9;
+  --border:rgba(0,0,0,0.09);--border-mid:rgba(0,0,0,0.15);
+  --text:#1a1916;--text-2:#6b6a65;--text-3:#a09f99;
+  --green:#1a8a5a;--green-bg:#e6f5ed;
+  --amber:#a05c0a;--amber-bg:#fef3e2;
+  --blue:#1a5ca0;--blue-bg:#e6f0fc;
+  --purple:#5b35b0;--purple-bg:#eeebff;
+  --teal:#0e7490;--teal-bg:#e0f2fe;
+  --gray:#6b6a65;--gray-bg:#f0efe9;
+  --red:#a0251a;--red-bg:#fce9e6;
+  --gold:#92650a;--gold-bg:#fef9e7;
+  --radius:10px;--radius-lg:14px;
+  --shadow:0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+
+/* SPLIT LAYOUT */
+.app-shell{display:flex;min-height:100vh;}
+.pane{flex:1;min-width:0;display:flex;flex-direction:column;border-right:2px solid var(--border-mid);}
+.pane:last-child{border-right:none;}
+.pane-header{padding:0 1.25rem;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;position:sticky;top:0;z-index:40;}
+.pane-sup{background:#1a1916;}
+.pane-val{background:var(--teal);}
+.pane-title{font-size:13px;font-weight:600;color:#fff;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}
+.pane-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse 2.5s infinite;flex-shrink:0;}
+.pane-dot-val{background:#67e8f9;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
+.pane-body{flex:1;overflow-y:auto;padding:1.25rem;}
+.pane-role{font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:20px;}
+.pr-sup{background:rgba(255,255,255,0.15);color:#fff;}
+.pr-view{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);}
+.pr-val{background:rgba(255,255,255,0.2);color:#fff;}
+
+/* BUTTONS */
+.btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border-mid);background:var(--surface);color:var(--text);cursor:pointer;transition:background 0.15s;white-space:nowrap;}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
+.btn-primary:hover{background:#333;}
+.btn-white{background:#fff;color:var(--text);border-color:rgba(255,255,255,0.3);}
+.btn-white:hover{background:#f5f5f5;}
+.btn-ghost{border-color:transparent;color:rgba(255,255,255,0.7);font-size:11px;padding:4px 8px;background:transparent;}
+.btn-ghost:hover{background:rgba(255,255,255,0.1);color:#fff;}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green);}
+.btn-green:hover{background:#157a4a;}
+.btn-amber{background:var(--amber);color:#fff;border-color:var(--amber);}
+.btn-amber:hover{background:#8a4e08;}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-red:hover{background:#8a1e15;}
+.btn-teal{background:var(--teal);color:#fff;border-color:var(--teal);}
+.btn-teal:hover{background:#0a6075;}
+.btn-sm{font-size:11px;padding:4px 10px;}
+.btn-back{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);background:none;border:none;cursor:pointer;padding:0;margin-bottom:12px;}
+.btn-back:hover{color:var(--text);}
+
+/* SCREENS */
+.screen{display:none;}.screen.active{display:block;}
+
+/* SECTION HEADERS */
+.section-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;gap:8px;flex-wrap:wrap;}
+.section-title{font-size:16px;font-weight:600;letter-spacing:-0.4px;}
+.section-sub{font-size:12px;color:var(--text-3);margin-top:2px;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:1.25rem;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0.85rem 1rem;box-shadow:var(--shadow);}
+.stat-label{font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;}
+.stat-val{font-size:22px;font-weight:600;letter-spacing:-1px;line-height:1;}
+.stat-sub{font-size:10px;color:var(--text-3);margin-top:2px;}
+
+/* PROJECT CARDS */
+.project-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer;transition:box-shadow 0.15s,border-color 0.15s;}
+.project-card:hover{box-shadow:var(--shadow-md);border-color:var(--border-mid);}
+.pc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.pc-name{font-size:13px;font-weight:600;letter-spacing:-0.2px;}
+.pc-hospital{font-size:11px;color:var(--text-3);}
+.pc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.pc-active{background:var(--green);}.pc-ending{background:var(--amber);}.pc-complete{background:var(--gray);}
+.pc-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+.pc-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:5px;}
+.pcb-trends{background:var(--purple-bg);color:var(--purple);}
+.pcb-wins{background:var(--gold-bg);color:var(--gold);}
+.pcb-pending{background:var(--amber-bg);color:var(--amber);}
+.pc-dates{font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;}
+.pc-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+
+/* PANEL */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);margin-bottom:1rem;overflow:hidden;}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.panel-title{font-size:12px;font-weight:600;letter-spacing:-0.1px;}
+.panel-meta{font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;}
+
+/* TREND ROWS */
+.trend-row{display:flex;align-items:flex-start;gap:10px;padding:0.75rem 1rem;border-bottom:1px solid var(--border);transition:background 0.12s;}
+.trend-row:last-child{border-bottom:none;}
+.trend-row:hover{background:var(--surface2);}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.dot-new{background:var(--blue);}.dot-active{background:var(--green);}.dot-monitoring{background:var(--amber);}.dot-resolved{background:var(--gray);}
+.tr-info{flex:1;min-width:0;}
+.tr-title{font-size:13px;font-weight:500;}
+.tr-meta{font-size:11px;color:var(--text-3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tr-notes{font-size:11px;color:var(--text-2);margin-top:3px;line-height:1.4;}
+.tr-right{display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+.badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:5px;white-space:nowrap;}
+.badge-new{background:var(--blue-bg);color:var(--blue);}
+.badge-active{background:var(--green-bg);color:var(--green);}
+.badge-monitoring{background:var(--amber-bg);color:var(--amber);}
+.badge-resolved{background:var(--gray-bg);color:var(--gray);}
+.badge-spec{background:var(--purple-bg);color:var(--purple);font-size:9px;}
+.badge-cohort{background:var(--teal-bg);color:var(--teal);font-size:9px;}
+.badge-pending{background:var(--amber-bg);color:var(--amber);}
+.badge-approved{background:var(--green-bg);color:var(--green);}
+.badge-rejected{background:var(--red-bg);color:var(--red);}
+.badge-more{background:var(--blue-bg);color:var(--blue);}
+
+/* ICON BUTTONS */
+.icon-btn{background:none;border:1px solid transparent;border-radius:5px;cursor:pointer;color:var(--text-3);padding:3px 5px;font-size:12px;line-height:1;transition:background 0.12s,color 0.12s;}
+.icon-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text-2);}
+
+/* WIN ROWS */
+.win-row{display:flex;align-items:flex-start;gap:10px;padding:0.75rem 1rem;border-bottom:1px solid var(--border);transition:background 0.12s;}
+.win-row:last-child{border-bottom:none;}
+.win-row:hover{background:var(--surface2);}
+.win-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.win-info{flex:1;min-width:0;}
+.win-title{font-size:13px;font-weight:500;}
+.win-meta{font-size:11px;color:var(--text-3);margin-top:1px;}
+.win-notes{font-size:11px;color:var(--text-2);margin-top:3px;line-height:1.4;}
+.win-type-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:5px;background:var(--gold-bg);color:var(--gold);}
+
+/* TABS */
+.tab-bar{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1rem;overflow:hidden;box-shadow:var(--shadow);}
+.tab{font-size:12px;font-weight:500;padding:9px 12px;border-bottom:2px solid transparent;cursor:pointer;color:var(--text-3);transition:color 0.15s,border-color 0.15s,background 0.15s;white-space:nowrap;flex:1;text-align:center;user-select:none;}
+.tab:hover{color:var(--text-2);background:var(--surface2);}
+.tab.ag{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-bg);}
+.tab.as{color:var(--purple);border-bottom-color:var(--purple);background:var(--purple-bg);}
+.tab.ae{color:var(--green);border-bottom-color:var(--green);background:var(--green-bg);}
+.tab.aw{color:var(--gold);border-bottom-color:var(--gold);background:var(--gold-bg);}
+.tab.ap{color:var(--amber);border-bottom-color:var(--amber);background:var(--amber-bg);}
+.tab-count{font-size:9px;font-family:'DM Mono',monospace;background:rgba(0,0,0,0.08);border-radius:9px;padding:1px 5px;margin-left:4px;}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0.75rem 0.9rem;box-shadow:var(--shadow);}
+.metric-label{font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;}
+.metric-val{font-size:22px;font-weight:600;letter-spacing:-1px;line-height:1;}
+.metric-sub{font-size:10px;color:var(--text-3);margin-top:2px;}
+.vg{color:var(--green);}.va{color:var(--amber);}.vr{color:var(--gray);}.vt{color:var(--teal);}.vgold{color:var(--gold);}
+
+/* FILTER */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;align-items:center;}
+.filter-chip{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--border-mid);background:var(--surface);color:var(--text-2);cursor:pointer;transition:background 0.12s;white-space:nowrap;}
+.filter-chip.active{background:var(--purple-bg);border-color:rgba(91,53,176,0.3);color:var(--purple);font-weight:500;}
+.filter-select{font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 8px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;cursor:pointer;}
+
+/* INFO BAR */
+.info-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;align-items:center;}
+.info-chip{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--border-mid);background:var(--surface);color:var(--text-2);}
+.info-chip strong{font-weight:600;color:var(--text);}
+
+/* CONTRACT WARNING */
+.contract-warning{background:var(--amber-bg);border:1px solid rgba(160,92,10,0.25);border-radius:var(--radius);padding:6px 10px;font-size:11px;color:var(--amber);margin-bottom:1rem;display:none;}
+
+/* EXPORT BAR */
+.export-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0.75rem 1rem;margin-bottom:1rem;box-shadow:var(--shadow);}
+.export-label{font-size:12px;font-weight:500;color:var(--text-2);flex:1;}
+
+/* PENDING SUBMISSION CARD */
+.submission-card{background:var(--surface);border:1.5px solid var(--amber);border-radius:var(--radius-lg);padding:1rem;margin-bottom:10px;box-shadow:var(--shadow);}
+.sub-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.sub-title{font-size:13px;font-weight:600;}
+.sub-meta{font-size:11px;color:var(--text-3);margin-top:2px;}
+.sub-notes{font-size:12px;color:var(--text-2);margin:8px 0;line-height:1.5;}
+.sub-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.sub-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.sup-note-input{width:100%;font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;margin-bottom:8px;resize:vertical;height:60px;}
+.sup-note-input:focus{border-color:var(--text);}
+
+/* VALIDATOR APPROVED TREND CARD */
+.approved-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:10px;box-shadow:var(--shadow);}
+.approved-card.highlight{border-color:var(--green);background:var(--green-bg);}
+.ac-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.ac-meta{font-size:11px;color:var(--text-3);margin-bottom:6px;}
+.ac-notes{font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:6px;}
+.ac-sup-note{font-size:11px;color:var(--purple);background:var(--purple-bg);border-radius:6px;padding:5px 8px;margin-top:6px;font-style:italic;}
+.ac-badges{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* VOICE */
+.voice-field{position:relative;}
+.voice-field input,.voice-field textarea{padding-right:34px;}
+.mic-btn{position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px;color:var(--text-3);padding:2px;border-radius:50%;line-height:1;}
+.mic-btn:hover{color:var(--blue);}
+.mic-btn.recording{color:#fff;background:var(--red);animation:mp 1s infinite;}
+.voice-field textarea~.mic-btn{top:10px;transform:none;}
+@keyframes mp{0%,100%{opacity:1}50%{opacity:0.6}}
+.voice-status{font-size:10px;color:var(--text-3);margin-top:3px;min-height:14px;font-family:'DM Mono',monospace;}
+.voice-status.listening{color:var(--red);}
+
+/* VALIDATOR LOGIN */
+.val-login{text-align:center;padding:2rem 1rem;}
+.val-login-icon{font-size:40px;margin-bottom:1rem;}
+.val-login h3{font-size:16px;font-weight:600;margin-bottom:0.5rem;}
+.val-login p{font-size:13px;color:var(--text-3);margin-bottom:1.5rem;}
+.val-name-input{width:100%;max-width:280px;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border:1.5px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;text-align:center;margin-bottom:1rem;}
+.val-name-input:focus{border-color:var(--teal);}
+
+/* NOTIFICATION BANNER */
+.notif-banner{border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;font-size:12px;display:flex;align-items:flex-start;gap:8px;}
+.notif-approved{background:var(--green-bg);border:1px solid rgba(26,138,90,0.3);color:var(--green);}
+.notif-rejected{background:var(--red-bg);border:1px solid rgba(160,37,26,0.3);color:var(--red);}
+.notif-more{background:var(--blue-bg);border:1px solid rgba(26,92,160,0.3);color:var(--blue);}
+.notif-pending{background:var(--amber-bg);border:1px solid rgba(160,92,10,0.3);color:var(--amber);}
+.notif-icon{font-size:16px;flex-shrink:0;}
+.notif-text{flex:1;}
+.notif-text strong{display:block;font-weight:600;margin-bottom:2px;}
+.notif-dismiss{background:none;border:none;cursor:pointer;color:inherit;opacity:0.6;font-size:14px;padding:0 2px;}
+.notif-dismiss:hover{opacity:1;}
+
+/* EMPTY STATE */
+.empty-state{padding:2rem 1rem;text-align:center;color:var(--text-3);font-size:12px;}
+.empty-icon{font-size:24px;margin-bottom:6px;}
+
+/* MODALS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;align-items:center;justify-content:center;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;width:420px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.14);max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:0.3rem;}
+.modal-sub{font-size:12px;color:var(--text-3);margin-bottom:1.25rem;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:4px;}
+.field input,.field select,.field textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;border:1px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;transition:border-color 0.15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--text);}
+.field textarea{height:75px;resize:vertical;}
+.field input[type=date]{cursor:pointer;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
+.modal-badge{font-size:10px;font-weight:500;padding:2px 8px;border-radius:5px;display:inline-block;margin-bottom:1rem;}
+.mb-g{background:var(--blue-bg);color:var(--blue);}
+.mb-s{background:var(--purple-bg);color:var(--purple);}
+.mb-e{background:var(--green-bg);color:var(--green);}
+.mb-w{background:var(--gold-bg);color:var(--gold);}
+.mb-val{background:var(--teal-bg);color:var(--teal);}
+
+/* PIN */
+.pin-row{display:flex;gap:10px;justify-content:center;margin-bottom:1.25rem;}
+.pin-digit{width:52px;height:60px;font-size:24px;font-weight:600;font-family:'DM Mono',monospace;text-align:center;border:1.5px solid var(--border-mid);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;}
+.pin-digit:focus{border-color:var(--text);}
+.pin-error{font-size:11px;color:var(--red);text-align:center;margin-bottom:0.75rem;min-height:16px;}
+
+/* EXPORT OPTIONS */
+.export-option{display:flex;align-items:flex-start;gap:10px;padding:0.85rem;border:1px solid var(--border-mid);border-radius:var(--radius);cursor:pointer;transition:background 0.12s;margin-bottom:8px;}
+.export-option:hover{background:var(--surface2);}
+.export-option-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.export-option-text strong{display:block;font-size:12px;font-weight:600;margin-bottom:2px;}
+.export-option-text span{font-size:11px;color:var(--text-3);}
+
+.tab-content{display:none;}.tab-content.active{display:block;}
+.footer-note{text-align:center;font-size:10px;color:var(--text-3);padding:1rem 0 0.5rem;font-family:'DM Mono',monospace;}
+
+@media(max-width:900px){
+  .app-shell{flex-direction:column;}
+  .pane{border-right:none;border-bottom:2px solid var(--border-mid);}
+  .metrics{grid-template-columns:repeat(2,1fr);}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:500px){
+  .field-row{grid-template-columns:1fr;}
+  .pin-digit{width:42px;height:52px;font-size:20px;}
+}
 </style>
 </head>
 <body>
+<div class="app-shell">
 
-<header>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    <span class="logo-text">Workflow Tracker</span>
-    <span class="logo-sub">MBI · ASPH</span>
+<!-- ============================================================ -->
+<!-- LEFT PANE — SUPERVISOR / PROJECT MANAGER -->
+<!-- ============================================================ -->
+<div class="pane">
+  <div class="pane-header pane-sup">
+    <div class="pane-title"><div class="pane-dot"></div>Supervisor / PM</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <span id="sup-role-pill" class="pane-role pr-view">View only</span>
+      <button id="sup-login-btn" class="btn btn-white btn-sm" onclick="openPinModal()">Login</button>
+      <button id="sup-logout-btn" class="btn btn-ghost btn-sm" onclick="supLogout()" style="display:none;">Log out</button>
+    </div>
   </div>
-  <div class="header-right">
-    <span class="live-pill">LIVE</span>
-    <span id="role-pill" class="role-pill role-viewer">View only</span>
-    <span id="last-upd" style="font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;"></span>
-    <button id="login-btn" class="btn btn-sm" onclick="openPinModal()">Supervisor login</button>
-    <button id="logout-btn" class="btn btn-ghost" onclick="logout()" style="display:none;">Log out</button>
-    <button id="add-btn" class="btn btn-primary btn-sm" onclick="openTrendModal()" style="display:none;">+ Add trend</button>
-  </div>
-</header>
+  <div class="pane-body">
 
-<div class="tab-bar">
-  <div class="tab active-g" id="tab-g" onclick="switchTab('general')">
-    General Trends <span class="tab-count" id="tc-g">0</span>
-  </div>
-  <div class="tab" id="tab-s" onclick="switchTab('speciality')">
-    Speciality Trends <span class="tab-count" id="tc-s">0</span>
-  </div>
-  <div class="tab" id="tab-e" onclick="switchTab('ers')">
-    ERS Trends <span class="tab-count" id="tc-e">0</span>
+    <!-- PROJECT LIST SCREEN -->
+    <div class="screen active" id="sup-screen-list">
+      <div class="section-hd">
+        <div><div class="section-title">Projects</div><div class="section-sub">Click a project to open it</div></div>
+        <button id="new-proj-btn" class="btn btn-primary" onclick="openProjectModal()" style="display:none;">+ New project</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Projects</div><div class="stat-val" id="ps-total">0</div></div>
+        <div class="stat-card"><div class="stat-label">Active</div><div class="stat-val vg" id="ps-active">0</div></div>
+        <div class="stat-card"><div class="stat-label">Trends</div><div class="stat-val" style="color:var(--purple)" id="ps-trends">0</div></div>
+        <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-val va" id="ps-pending">0</div></div>
+      </div>
+      <div id="sup-project-list">
+        <div class="empty-state" id="sup-empty-projects"><div class="empty-icon">📋</div>No projects yet — log in as supervisor to create one.</div>
+      </div>
+      <div class="footer-note" id="sup-footer-list"></div>
+    </div>
+
+    <!-- PROJECT DETAIL SCREEN -->
+    <div class="screen" id="sup-screen-detail">
+      <button class="btn-back" onclick="supGoBack()">← All projects</button>
+      <div class="section-hd">
+        <div><div class="section-title" id="sup-detail-title"></div><div class="section-sub" id="sup-detail-sub"></div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="sup-detail-actions">
+          <button class="btn btn-sm" id="sup-edit-btn" onclick="editCurrentProject()" style="display:none;">Edit</button>
+          <button class="btn btn-primary btn-sm" id="sup-add-trend-btn" onclick="openTrendModal()" style="display:none;">+ Add trend</button>
+        </div>
+      </div>
+      <div class="info-bar" id="sup-info-bar"></div>
+      <div class="contract-warning" id="contract-warning"></div>
+      <div class="export-bar" id="sup-export-bar" style="display:none;">
+        <span class="export-label">Export findings</span>
+        <button class="btn btn-sm" style="background:#1a6e34;color:#fff;border-color:#1a6e34;" onclick="openReportModal()">⬇ Excel</button>
+        <button class="btn btn-sm" style="background:#a0251a;color:#fff;border-color:#a0251a;" onclick="doExport('pdf')">⬇ PDF</button>
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab ag" id="stab-g" onclick="supSwitchTab('general')">General <span class="tab-count" id="stc-g">0</span></div>
+        <div class="tab" id="stab-s" onclick="supSwitchTab('speciality')">Speciality <span class="tab-count" id="stc-s">0</span></div>
+        <div class="tab" id="stab-e" onclick="supSwitchTab('ers')">ERS <span class="tab-count" id="stc-e">0</span></div>
+        <div class="tab" id="stab-w" onclick="supSwitchTab('wins')">Wins <span class="tab-count" id="stc-w">0</span></div>
+        <div class="tab" id="stab-p" onclick="supSwitchTab('pending')">Pending <span class="tab-count" id="stc-p">0</span></div>
+      </div>
+
+      <!-- GENERAL -->
+      <div class="tab-content active" id="sup-tab-general">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="gm-total">0</div></div>
+          <div class="metric"><div class="metric-label">Active</div><div class="metric-val vg" id="gm-active">0</div></div>
+          <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val va" id="gm-monitoring">0</div></div>
+          <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val vr" id="gm-resolved">0</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-hd"><span class="panel-title">General trends</span><span class="panel-meta" id="g-count">0 items</span></div>
+          <div id="g-list"><div class="empty-state" id="g-empty"><div class="empty-icon">📊</div>No general trends yet.</div></div>
+        </div>
+      </div>
+
+      <!-- SPECIALITY -->
+      <div class="tab-content" id="sup-tab-speciality">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="sm-total">0</div></div>
+          <div class="metric"><div class="metric-label">Active</div><div class="metric-val vg" id="sm-active">0</div></div>
+          <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val va" id="sm-monitoring">0</div></div>
+          <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val vr" id="sm-resolved">0</div></div>
+        </div>
+        <div class="filter-bar">
+          <span style="font-size:11px;color:var(--text-3);">Filter:</span>
+          <span class="filter-chip active" data-spec="all" onclick="setSpecFilter('all')">All</span>
+          <select class="filter-select" id="spec-filter-sel" onchange="setSpecFilter(this.value)"><option value="all">All specialities</option></select>
+        </div>
+        <div class="panel">
+          <div class="panel-hd"><span class="panel-title">Speciality trends</span><span class="panel-meta" id="s-count">0 items</span></div>
+          <div id="s-list"><div class="empty-state" id="s-empty"><div class="empty-icon">🏥</div>No speciality trends yet.</div></div>
+        </div>
+      </div>
+
+      <!-- ERS -->
+      <div class="tab-content" id="sup-tab-ers">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="em-total">0</div></div>
+          <div class="metric"><div class="metric-label">Active</div><div class="metric-val vg" id="em-active">0</div></div>
+          <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val va" id="em-monitoring">0</div></div>
+          <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val vr" id="em-resolved">0</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-hd"><span class="panel-title">ERS trends</span><span class="panel-meta" id="e-count">0 items</span></div>
+          <div id="e-list"><div class="empty-state" id="e-empty"><div class="empty-icon">🔗</div>No ERS trends yet.</div></div>
+        </div>
+      </div>
+
+      <!-- WINS -->
+      <div class="tab-content" id="sup-tab-wins">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total</div><div class="metric-val vgold" id="wm-total">0</div></div>
+          <div class="metric"><div class="metric-label">Extensions</div><div class="metric-val vgold" id="wm-ext">0</div></div>
+          <div class="metric"><div class="metric-label">Repeat</div><div class="metric-val vgold" id="wm-repeat">0</div></div>
+          <div class="metric"><div class="metric-label">Improvements</div><div class="metric-val vgold" id="wm-improve">0</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-hd"><span class="panel-title">Win log</span><div style="display:flex;gap:6px;align-items:center;"><span class="panel-meta" id="w-count">0 wins</span><button id="add-win-btn" class="btn btn-sm" onclick="openWinModal()" style="display:none;">+ Add win</button></div></div>
+          <div id="w-list"><div class="empty-state" id="w-empty"><div class="empty-icon">🏆</div>No wins logged yet.</div></div>
+        </div>
+      </div>
+
+      <!-- PENDING VALIDATOR SUBMISSIONS -->
+      <div class="tab-content" id="sup-tab-pending">
+        <div class="panel">
+          <div class="panel-hd"><span class="panel-title">Validator submissions awaiting review</span><span class="panel-meta" id="p-count">0 pending</span></div>
+          <div id="p-list"><div class="empty-state" id="p-empty"><div class="empty-icon">✅</div>No pending submissions — all clear!</div></div>
+        </div>
+      </div>
+
+      <div class="footer-note" id="sup-footer-detail"></div>
+    </div>
   </div>
 </div>
 
-<main>
-  <div class="view-banner" id="view-banner">
-    <span class="view-banner-text"><strong>View only mode.</strong> You can see all trends and activity — only supervisors can make changes.</span>
-    <button class="btn btn-sm" onclick="openPinModal()">Supervisor login</button>
-  </div>
-
-  <!-- EXPORT BAR -->
-  <div class="export-bar" id="export-bar" style="display:none;">
-    <span class="export-label">Export your findings <span>— download as Excel or PDF report</span></span>
-    <button class="btn btn-sm btn-excel" onclick="openReportModal('excel')">⬇ Export to Excel</button>
-    <button class="btn btn-sm btn-pdf" onclick="openReportModal('pdf')">⬇ Export to PDF</button>
-  </div>
-
-  <!-- GENERAL TAB -->
-  <div class="tab-content active" id="content-general">
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="gm-total">0</div><div class="metric-sub">general trends</div></div>
-      <div class="metric"><div class="metric-label">Active</div><div class="metric-val val-green" id="gm-active">0</div><div class="metric-sub">in progress</div></div>
-      <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val val-amber" id="gm-monitoring">0</div><div class="metric-sub">being watched</div></div>
-      <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val val-gray" id="gm-resolved">0</div><div class="metric-sub">closed out</div></div>
+<!-- ============================================================ -->
+<!-- RIGHT PANE — VALIDATOR -->
+<!-- ============================================================ -->
+<div class="pane">
+  <div class="pane-header pane-val">
+    <div class="pane-title"><div class="pane-dot pane-dot-val"></div>Validator</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <span id="val-role-pill" class="pane-role pr-val" style="display:none;"></span>
+      <button id="val-logout-btn" class="btn btn-ghost btn-sm" onclick="valLogout()" style="display:none;">Log out</button>
     </div>
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">General trends</span>
-        <span class="panel-meta" id="g-count">0 items</span>
+  </div>
+  <div class="pane-body">
+
+    <!-- VALIDATOR LOGIN SCREEN -->
+    <div class="screen active" id="val-screen-login">
+      <div class="val-login">
+        <div class="val-login-icon">👤</div>
+        <h3>Validator sign in</h3>
+        <p>Enter your name to access the validator workspace. No PIN required.</p>
+        <input class="val-name-input" id="val-name-input" placeholder="Your name..." maxlength="50"/>
+        <br/>
+        <button class="btn btn-teal" onclick="valLogin()" style="font-size:13px;padding:9px 24px;">Sign in →</button>
       </div>
-      <div id="g-list"><div class="empty-state" id="g-empty">No general trends logged yet. Log in as supervisor to start adding trends.</div></div>
     </div>
-  </div>
 
-  <!-- SPECIALITY TAB -->
-  <div class="tab-content" id="content-speciality">
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="sm-total">0</div><div class="metric-sub">speciality trends</div></div>
-      <div class="metric"><div class="metric-label">Active</div><div class="metric-val val-green" id="sm-active">0</div><div class="metric-sub">in progress</div></div>
-      <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val val-amber" id="sm-monitoring">0</div><div class="metric-sub">being watched</div></div>
-      <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val val-gray" id="sm-resolved">0</div><div class="metric-sub">closed out</div></div>
-    </div>
-    <div class="filter-bar">
-      <span class="filter-label">Filter by speciality:</span>
-      <span class="filter-chip active" data-spec="all" onclick="setFilter('all')">All</span>
-      <select class="filter-select" id="spec-filter-sel" onchange="setFilter(this.value)">
-        <option value="all">All specialities</option>
-      </select>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Speciality trends</span>
-        <span class="panel-meta" id="s-count">0 items</span>
+    <!-- VALIDATOR WORKSPACE -->
+    <div class="screen" id="val-screen-workspace">
+      <!-- NOTIFICATIONS -->
+      <div id="val-notifs"></div>
+
+      <div class="tab-bar">
+        <div class="tab ag" id="vtab-submit" onclick="valSwitchTab('submit')">Submit trend</div>
+        <div class="tab" id="vtab-approved" onclick="valSwitchTab('approved')">Approved trends <span class="tab-count" id="vtc-approved">0</span></div>
+        <div class="tab" id="vtab-mine" onclick="valSwitchTab('mine')">My submissions <span class="tab-count" id="vtc-mine">0</span></div>
       </div>
-      <div id="s-list"><div class="empty-state" id="s-empty">No speciality trends logged yet. Log in as supervisor to start adding trends.</div></div>
-    </div>
-  </div>
 
-  <!-- ERS TAB -->
-  <div class="tab-content" id="content-ers">
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="em-total">0</div><div class="metric-sub">ERS trends</div></div>
-      <div class="metric"><div class="metric-label">Active</div><div class="metric-val val-green" id="em-active">0</div><div class="metric-sub">in progress</div></div>
-      <div class="metric"><div class="metric-label">Monitoring</div><div class="metric-val val-amber" id="em-monitoring">0</div><div class="metric-sub">being watched</div></div>
-      <div class="metric"><div class="metric-label">Resolved</div><div class="metric-val val-gray" id="em-resolved">0</div><div class="metric-sub">closed out</div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">ERS trends</span>
-        <span class="panel-meta" id="e-count">0 items</span>
+      <!-- SUBMIT TREND -->
+      <div class="tab-content active" id="val-tab-submit">
+        <div class="panel">
+          <div class="panel-hd"><span class="panel-title">Submit a trend for supervisor review</span></div>
+          <div style="padding:1rem;">
+            <div class="field">
+              <label>Project</label>
+              <select id="val-project-sel" onchange="onValProjectChange()"><option value="">— Select project —</option></select>
+            </div>
+            <div class="field">
+              <label>Cohort</label>
+              <select id="val-cohort-sel"><option value="">— Select cohort —</option></select>
+            </div>
+            <div class="field">
+              <label>Speciality (if applicable)</label>
+              <select id="val-spec-sel">
+                <option value="">— General / ERS (no speciality) —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Trend type</label>
+              <select id="val-type-sel">
+                <option value="general">General</option>
+                <option value="speciality">Speciality</option>
+                <option value="ers">ERS</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Trend title</label>
+              <div class="voice-field">
+                <input id="val-title" placeholder="e.g. Consistent coding errors in referrals"/>
+                <button class="mic-btn" type="button" onclick="toggleVoice('val-title','mic-vt','vs-vt')">🎤</button>
+              </div>
+              <div class="voice-status" id="vs-vt"></div>
+            </div>
+            <div class="field">
+              <label>Details / observations</label>
+              <div class="voice-field">
+                <textarea id="val-notes" placeholder="Describe what you noticed, which records, any patterns..."></textarea>
+                <button class="mic-btn" type="button" onclick="toggleVoice('val-notes','mic-vn','vs-vn')">🎤</button>
+              </div>
+              <div class="voice-status" id="vs-vn"></div>
+            </div>
+            <button class="btn btn-teal" onclick="submitValTrend()" style="width:100%;padding:9px;font-size:13px;">Submit for supervisor review →</button>
+          </div>
+        </div>
       </div>
-      <div id="e-list"><div class="empty-state" id="e-empty">No ERS trends logged yet. Log in as supervisor to start adding trends.</div></div>
+
+      <!-- APPROVED TRENDS -->
+      <div class="tab-content" id="val-tab-approved">
+        <div class="panel">
+          <div class="panel-hd"><span class="panel-title">Approved trends — permanent list</span></div>
+          <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border);">
+            <div class="field" style="margin-bottom:8px;">
+              <label>Filter by cohort</label>
+              <select class="filter-select" id="val-filter-cohort" onchange="renderApprovedTrends()" style="width:100%;"><option value="">All cohorts</option></select>
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Filter by speciality</label>
+              <select class="filter-select" id="val-filter-spec" onchange="renderApprovedTrends()" style="width:100%;"><option value="">All specialities</option></select>
+            </div>
+          </div>
+          <div id="val-approved-list"><div class="empty-state" id="val-approved-empty"><div class="empty-icon">📋</div>No approved trends yet.</div></div>
+        </div>
+      </div>
+
+      <!-- MY SUBMISSIONS -->
+      <div class="tab-content" id="val-tab-mine">
+        <div class="panel">
+          <div class="panel-hd"><span class="panel-title">My submissions</span><span class="panel-meta" id="val-mine-count">0</span></div>
+          <div id="val-mine-list"><div class="empty-state" id="val-mine-empty"><div class="empty-icon">📝</div>You haven't submitted any trends yet.</div></div>
+        </div>
+      </div>
+
+      <div class="footer-note" id="val-footer"></div>
     </div>
   </div>
+</div>
+</div>
 
-  <!-- SHARED -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">Activity feed</span>
-      <button id="clear-btn" class="btn btn-sm" onclick="clearAlerts()" style="display:none;">Clear all</button>
-    </div>
-    <div id="alert-list"><div class="empty-state" id="empty-alerts">No activity yet.</div></div>
-  </div>
+<!-- ============================================================ -->
+<!-- MODALS -->
+<!-- ============================================================ -->
 
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">Team</span>
-      <button id="add-member-btn" class="btn btn-sm" onclick="addMember()" style="display:none;">+ Add member</button>
-    </div>
-    <div class="team-area" id="team-row">
-      <div class="avatar av-0 online" title="Alex (online)" onclick="pingMember('Alex')">AL</div>
-      <div class="avatar av-1 online" title="Beth (online)" onclick="pingMember('Beth')">BE</div>
-      <div class="avatar av-2" title="Chris" onclick="pingMember('Chris')">CH</div>
-      <div class="avatar av-3" title="Dana" onclick="pingMember('Dana')">DA</div>
-    </div>
-  </div>
-
-  <div class="panel" id="notify-panel" style="display:none;">
-    <div class="panel-header"><span class="panel-title">Notify team</span></div>
-    <div class="notify-area">
-      <input class="notif-input" id="notif-msg" placeholder="Type an update for your team..." />
-      <select class="notif-select" id="notif-type">
-        <option value="new">New finding</option>
-        <option value="change">Status change</option>
-        <option value="resolved">Resolved</option>
-        <option value="info">General update</option>
-      </select>
-      <button class="btn btn-primary btn-sm" onclick="sendNotif()">Send alert</button>
-    </div>
-  </div>
-
-  <div class="footer-note" id="footer-ts"></div>
-</main>
-
-<!-- PIN MODAL -->
+<!-- PIN -->
 <div class="overlay" id="pin-overlay" onclick="closePinBg(event)">
-  <div class="modal">
+  <div class="modal" style="max-width:320px;">
     <h3>Supervisor login</h3>
     <p class="modal-sub">Enter your 4-digit PIN to unlock editing.</p>
     <div class="pin-row">
@@ -329,586 +555,711 @@
   </div>
 </div>
 
-<!-- TREND MODAL -->
-<div class="toverlay" id="trend-overlay" onclick="closeTrendBg(event)">
-  <div class="tmodal">
-    <h3 id="t-ttl">Log a trend</h3>
-    <span class="tmodal-badge" id="t-badge">General</span>
+<!-- PROJECT MODAL -->
+<div class="overlay" id="project-overlay" onclick="closeProjectBg(event)">
+  <div class="modal">
+    <h3 id="pm-title">New project</h3>
+    <p class="modal-sub">Fill in the project details below.</p>
     <div class="field">
-      <label>Trend title</label>
-      <div class="voice-field">
-        <input id="f-title" placeholder="e.g. Increased referral delays"/>
-        <button class="mic-btn" id="mic-title" type="button" title="Click to dictate title" onclick="toggleVoice('f-title','mic-title','vs-title')">🎤</button>
+      <label>Project name</label>
+      <div class="voice-field"><input id="pm-name" placeholder="e.g. ASPH RTT Review 2026"/><button class="mic-btn" type="button" onclick="toggleVoice('pm-name','mic-pmn','vs-pmn')">🎤</button></div>
+      <div class="voice-status" id="vs-pmn"></div>
+    </div>
+    <div class="field"><label>Hospital / NHS Trust</label><select id="pm-hospital"></select></div>
+    <div class="field-row">
+      <div class="field"><label>Start date</label><input id="pm-start" type="date"/></div>
+      <div class="field"><label>Contract end date</label><input id="pm-end" type="date"/></div>
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <div class="voice-field"><textarea id="pm-notes" placeholder="Any additional context..."></textarea><button class="mic-btn" type="button" onclick="toggleVoice('pm-notes','mic-pmno','vs-pmno')">🎤</button></div>
+      <div class="voice-status" id="vs-pmno"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeProjectModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save project</button>
+    </div>
+  </div>
+</div>
+
+<!-- TREND MODAL -->
+<div class="overlay" id="trend-overlay" onclick="closeTrendBg(event)">
+  <div class="modal">
+    <h3 id="tm-title">Log a trend</h3>
+    <span class="modal-badge mb-g" id="tm-badge">General</span>
+    <div class="field"><label>Trend type</label><select id="tm-type" onchange="onTrendTypeChange()"><option value="general">General</option><option value="speciality">Speciality</option><option value="ers">ERS</option></select></div>
+    <div class="field" id="tm-spec-field" style="display:none;"><label>Speciality</label><select id="tm-spec"></select></div>
+    <div class="field">
+      <label>Cohort</label>
+      <div style="display:flex;gap:8px;">
+        <select id="tm-cohort" style="flex:1;"></select>
+        <button class="btn btn-sm" type="button" onclick="addCohortPrompt()">+ Add</button>
       </div>
-      <div class="voice-status" id="vs-title"></div>
+    </div>
+    <div class="field">
+      <label>Title</label>
+      <div class="voice-field"><input id="tm-title-input" placeholder="e.g. Increased referral delays"/><button class="mic-btn" type="button" onclick="toggleVoice('tm-title-input','mic-tmt','vs-tmt')">🎤</button></div>
+      <div class="voice-status" id="vs-tmt"></div>
     </div>
     <div class="field">
       <label>Notes / observations</label>
-      <div class="voice-field">
-        <textarea id="f-notes" placeholder="Describe the trend, data points, context..."></textarea>
-        <button class="mic-btn" id="mic-notes" type="button" title="Click to dictate notes" onclick="toggleVoice('f-notes','mic-notes','vs-notes')">🎤</button>
-      </div>
-      <div class="voice-status" id="vs-notes"></div>
+      <div class="voice-field"><textarea id="tm-notes" placeholder="Describe the trend..."></textarea><button class="mic-btn" type="button" onclick="toggleVoice('tm-notes','mic-tmn','vs-tmn')">🎤</button></div>
+      <div class="voice-status" id="vs-tmn"></div>
     </div>
-    <div class="field"><label>Status</label>
-      <select id="f-status">
-        <option value="new">New</option>
-        <option value="active">Active</option>
-        <option value="monitoring">Monitoring</option>
-        <option value="resolved">Resolved</option>
-      </select>
-    </div>
-    <div class="field" id="spec-field" style="display:none;"><label>ASPH Speciality</label><select id="f-spec"></select></div>
-    <div class="field"><label>Owner</label><input id="f-owner" placeholder="Your name or team"/></div>
-    <div class="modal-btns2">
+    <div class="field"><label>Status</label><select id="tm-status"><option value="new">New</option><option value="active">Active</option><option value="monitoring">Monitoring</option><option value="resolved">Resolved</option></select></div>
+    <div class="field"><label>Owner</label><input id="tm-owner" placeholder="Your name or team"/></div>
+    <div class="modal-btns">
       <button class="btn" onclick="closeTrendModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveTrend()">Save trend</button>
     </div>
   </div>
 </div>
 
-<!-- REPORT / EXPORT MODAL -->
-<div class="roverlay" id="report-overlay" onclick="closeReportBg(event)">
-  <div class="rmodal">
-    <h3>Export findings</h3>
-    <p class="rmodal-sub">Choose a format to download your trends as a report.</p>
+<!-- WIN MODAL -->
+<div class="overlay" id="win-overlay" onclick="closeWinBg(event)">
+  <div class="modal">
+    <h3 id="wm-modal-title">Log a win</h3>
+    <span class="modal-badge mb-w">Win Log</span>
+    <div class="field"><label>Win type</label><select id="wm-type"><option value="Contract extension">Contract extension</option><option value="Process improvement adopted by trust">Process improvement adopted by trust</option><option value="Positive feedback / commendation">Positive feedback / commendation</option><option value="Repeat business secured">Repeat business secured</option></select></div>
     <div class="field">
-      <label>Project / report title</label>
-      <input id="r-title" placeholder="e.g. ASPH Cardiology Review Q1 2026" />
+      <label>Title / summary</label>
+      <div class="voice-field"><input id="wm-title-input" placeholder="e.g. 6 month contract extension agreed"/><button class="mic-btn" type="button" onclick="toggleVoice('wm-title-input','mic-wmt','vs-wmt')">🎤</button></div>
+      <div class="voice-status" id="vs-wmt"></div>
     </div>
     <div class="field">
-      <label>Include</label>
-      <select id="r-scope">
-        <option value="all">All trends (general + speciality + ERS)</option>
-        <option value="general">General trends only</option>
-        <option value="speciality">Speciality trends only</option>
-        <option value="ers">ERS trends only</option>
-      </select>
+      <label>Details</label>
+      <div class="voice-field"><textarea id="wm-notes" placeholder="What led to this win?"></textarea><button class="mic-btn" type="button" onclick="toggleVoice('wm-notes','mic-wmn','vs-wmn')">🎤</button></div>
+      <div class="voice-status" id="vs-wmn"></div>
     </div>
-    <div class="export-options">
-      <div class="export-option" onclick="doExport('excel')">
-        <div class="export-option-icon icon-xl">📊</div>
-        <div class="export-option-text">
-          <strong>Export to Excel (.xlsx)</strong>
-          <span>All trends in a spreadsheet — easy to share with your team or filter further</span>
-        </div>
-      </div>
-      <div class="export-option" onclick="doExport('pdf')">
-        <div class="export-option-icon icon-pdf">📄</div>
-        <div class="export-option-text">
-          <strong>Export to PDF report</strong>
-          <span>A formatted report with summary metrics — ready to share with managers or trusts</span>
-        </div>
-      </div>
-    </div>
+    <div class="field"><label>Date</label><input id="wm-date" type="date"/></div>
     <div class="modal-btns">
-      <button class="btn" onclick="closeReportModal()">Cancel</button>
+      <button class="btn" onclick="closeWinModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWin()">Save win</button>
     </div>
   </div>
 </div>
 
+<!-- APPROVE MODAL (supervisor adds notes before approving) -->
+<div class="overlay" id="approve-overlay" onclick="closeApproveBg(event)">
+  <div class="modal">
+    <h3>Review validator submission</h3>
+    <p class="modal-sub">Add supervisor notes before approving — these will be visible to all validators.</p>
+    <div id="approve-sub-preview" style="background:var(--surface2);border-radius:var(--radius);padding:0.85rem;margin-bottom:1rem;font-size:12px;"></div>
+    <div class="field">
+      <label>Supervisor notes (optional)</label>
+      <div class="voice-field"><textarea id="approve-notes" placeholder="Add context, confirmation, or guidance for validators..."></textarea><button class="mic-btn" type="button" onclick="toggleVoice('approve-notes','mic-an','vs-an')">🎤</button></div>
+      <div class="voice-status" id="vs-an"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeApproveModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmApprove()">Approve &amp; publish →</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="overlay" id="report-overlay" onclick="closeReportBg(event)">
+  <div class="modal" style="max-width:380px;">
+    <h3>Export project report</h3>
+    <p class="modal-sub">Download findings for this project.</p>
+    <div class="field"><label>Report title</label><input id="r-title" placeholder="e.g. ASPH RTT Review Q1 2026"/></div>
+    <div class="field"><label>Include trends</label><select id="r-scope"><option value="all">All trends</option><option value="general">General only</option><option value="speciality">Speciality only</option><option value="ers">ERS only</option></select></div>
+    <div class="export-option" onclick="doExport('excel')">
+      <div class="export-option-icon" style="background:#e6f5ed;">📊</div>
+      <div class="export-option-text"><strong>Export to Excel (.xlsx)</strong><span>All trends + win log in a spreadsheet</span></div>
+    </div>
+    <div class="export-option" onclick="doExport('pdf')">
+      <div class="export-option-icon" style="background:#fce9e6;">📄</div>
+      <div class="export-option-text"><strong>Export to PDF report</strong><span>Formatted report ready to share</span></div>
+    </div>
+    <div class="modal-btns"><button class="btn" onclick="closeReportModal()">Cancel</button></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCRIPT -->
+<!-- ============================================================ -->
 <script>
 const PIN='1010';
 const SPECS=['Breast','Cardiology','Colorectal','Dermatology','Ear, Nose and Throat','Endocrinology','Gastroenterology','General Surgery','Gynaecology','Haematology','Maxillofacial Surgery','Neurology','Ophthalmology','Orthodontics','Orthopaedics','Paediatrics','Pain Management','Renal','Respiratory','Rheumatology','Spinal Surgery','Upper Gastrointestinal Surgery','Urology','Vascular'];
-const STATUS={new:{dot:'dot-new',badge:'badge-new',label:'New'},active:{dot:'dot-active',badge:'badge-active',label:'Active'},monitoring:{dot:'dot-monitoring',badge:'badge-monitoring',label:'Monitoring'},resolved:{dot:'dot-resolved',badge:'badge-resolved',label:'Resolved'}};
-const AMETA={new:['ai-new','N'],change:['ai-change','~'],resolved:['ai-resolved','✓'],info:['ai-info','i'],spec:['ai-spec','S']};
-const AVC=['av-0','av-1','av-2','av-3','av-4'];
+const NHS_TRUSTS=['Ashford and St Peters Hospitals NHS FT','Barking, Havering and Redbridge University Hospitals NHS Trust','Barts Health NHS Trust','Brighton and Sussex University Hospitals NHS Trust','Cambridge University Hospitals NHS FT','Chelsea and Westminster Hospital NHS FT','East Kent Hospitals University NHS FT','Epsom and St Helier University Hospitals NHS Trust','Frimley Health NHS FT','Guy\'s and St Thomas\' NHS FT','Hampshire Hospitals NHS FT','Imperial College Healthcare NHS Trust','King\'s College Hospital NHS FT','Kingston Hospital NHS FT','Lewisham and Greenwich NHS Trust','Maidstone and Tunbridge Wells NHS Trust','Medway NHS FT','Mid and South Essex NHS FT','North Middlesex University Hospital NHS Trust','Oxford University Hospitals NHS FT','Royal Berkshire NHS FT','Royal Free London NHS FT','Royal Surrey NHS FT','South London and Maudsley NHS FT','St George\'s University Hospitals NHS FT','Surrey and Sussex Healthcare NHS Trust','University College London Hospitals NHS FT','University Hospital Southampton NHS FT','University Hospitals Birmingham NHS FT','West Hertfordshire Teaching Hospitals NHS Trust','Whittington Health NHS Trust'];
+const STATUS_META={new:{dot:'dot-new',badge:'badge-new',label:'New'},active:{dot:'dot-active',badge:'badge-active',label:'Active'},monitoring:{dot:'dot-monitoring',badge:'badge-monitoring',label:'Monitoring'},resolved:{dot:'dot-resolved',badge:'badge-resolved',label:'Resolved'}};
+const WIN_ICONS={'Contract extension':'📄','Process improvement adopted by trust':'⚙️','Positive feedback / commendation':'⭐','Repeat business secured':'🔄'};
 
-let sup=false,tab='general',filt='all',editId=null,mc=4;
-let trends=JSON.parse(localStorage.getItem('wft3-trends')||'[]');
-let alerts=JSON.parse(localStorage.getItem('wft3-alerts')||'[]');
+// STATE
+let sup=false,valName=null;
+let currentProjectId=null,supTab='general',specFilter='all',editTrendId=null,editWinId=null,editProjectId=null,approvingSubId=null;
+let projects=JSON.parse(localStorage.getItem('mbi2-projects')||'[]');
+let cohorts=JSON.parse(localStorage.getItem('mbi2-cohorts')||'["Cohort 1","Cohort 2","Wave 1","Wave 2","Phase 1","Phase 2"]');
+let valSubmissions=JSON.parse(localStorage.getItem('mbi2-submissions')||'[]');
+let approvedTrends=JSON.parse(localStorage.getItem('mbi2-approved')||'[]');
+let valNotifs=JSON.parse(localStorage.getItem('mbi2-val-notifs')||'[]');
 
-function save(){localStorage.setItem('wft3-trends',JSON.stringify(trends));localStorage.setItem('wft3-alerts',JSON.stringify(alerts));}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function ago(ts){const s=Math.floor((Date.now()-ts)/1000);if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
-function fmtDate(ts){return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function saveAll(){
+  localStorage.setItem('mbi2-projects',JSON.stringify(projects));
+  localStorage.setItem('mbi2-cohorts',JSON.stringify(cohorts));
+  localStorage.setItem('mbi2-submissions',JSON.stringify(valSubmissions));
+  localStorage.setItem('mbi2-approved',JSON.stringify(approvedTrends));
+  localStorage.setItem('mbi2-val-notifs',JSON.stringify(valNotifs));
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtDate(ts){if(!ts)return '—';return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function fmtDT(ts){if(!ts)return '—';return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function daysUntil(d){if(!d)return null;return Math.ceil((new Date(d)-new Date())/(1000*60*60*24));}
+function uid(){return Date.now()+Math.random();}
 
+// INIT DROPDOWNS
 (function(){
-  const fs=document.getElementById('f-spec'),ss=document.getElementById('spec-filter-sel');
+  const ts=document.getElementById('tm-spec'),fs=document.getElementById('spec-filter-sel'),vs=document.getElementById('val-spec-sel'),vf=document.getElementById('val-filter-spec');
   SPECS.forEach(s=>{
-    const o=document.createElement('option');o.value=s;o.textContent=s;fs.appendChild(o);
-    const o2=document.createElement('option');o2.value=s;o2.textContent=s;ss.appendChild(o2);
+    [ts,fs,vs,vf].forEach(el=>{const o=document.createElement('option');o.value=s;o.textContent=s;el.appendChild(o);});
   });
+  const ph=document.getElementById('pm-hospital');
+  NHS_TRUSTS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ph.appendChild(o);});
 })();
 
-function switchTab(t){
-  tab=t;
-  document.getElementById('content-general').classList.toggle('active',t==='general');
-  document.getElementById('content-speciality').classList.toggle('active',t==='speciality');
-  document.getElementById('content-ers').classList.toggle('active',t==='ers');
-  document.getElementById('tab-g').className='tab'+(t==='general'?' active-g':'');
-  document.getElementById('tab-s').className='tab'+(t==='speciality'?' active-s':'');
-  document.getElementById('tab-e').className='tab'+(t==='ers'?' active-e':'');
-  if(sup){
-    const labels={general:'+ Add general trend',speciality:'+ Add speciality trend',ers:'+ Add ERS trend'};
-    document.getElementById('add-btn').textContent=labels[t];
-  }
+function refreshCohortDD(selId){
+  const sel=document.getElementById(selId);if(!sel)return;
+  const cur=sel.value;
+  const blank=selId==='tm-cohort'?'<option value="">— No cohort —</option>':'<option value="">— Select cohort —</option>';
+  sel.innerHTML=blank;
+  cohorts.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  if(cur)sel.value=cur;
+}
+function addCohortPrompt(){
+  const name=prompt('New cohort name:');if(!name||!name.trim())return;
+  if(!cohorts.includes(name.trim()))cohorts.push(name.trim());
+  saveAll();refreshCohortDD('tm-cohort');
+  document.getElementById('tm-cohort').value=name.trim();
+}
+function refreshValCohortDD(){
+  const sel=document.getElementById('val-cohort-sel');
+  sel.innerHTML='<option value="">— Select cohort —</option>';
+  cohorts.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  const fc=document.getElementById('val-filter-cohort');
+  fc.innerHTML='<option value="">All cohorts</option>';
+  cohorts.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;fc.appendChild(o);});
 }
 
-function setFilter(v){
-  filt=v;
-  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.spec===v));
-  document.getElementById('spec-filter-sel').value=v;
-  renderS();
-}
+// SCREENS
+function supShowScreen(id){document.querySelectorAll('#sup-screen-list,#sup-screen-detail').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function valShowScreen(id){document.querySelectorAll('#val-screen-login,#val-screen-workspace').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
-function metrics(){
-  const g=trends.filter(t=>t.type==='general'),s=trends.filter(t=>t.type==='speciality'),e=trends.filter(t=>t.type==='ers');
-  document.getElementById('gm-total').textContent=g.length;
-  document.getElementById('gm-active').textContent=g.filter(t=>t.status==='active').length;
-  document.getElementById('gm-monitoring').textContent=g.filter(t=>t.status==='monitoring').length;
-  document.getElementById('gm-resolved').textContent=g.filter(t=>t.status==='resolved').length;
-  document.getElementById('sm-total').textContent=s.length;
-  document.getElementById('sm-active').textContent=s.filter(t=>t.status==='active').length;
-  document.getElementById('sm-monitoring').textContent=s.filter(t=>t.status==='monitoring').length;
-  document.getElementById('sm-resolved').textContent=s.filter(t=>t.status==='resolved').length;
-  document.getElementById('em-total').textContent=e.length;
-  document.getElementById('em-active').textContent=e.filter(t=>t.status==='active').length;
-  document.getElementById('em-monitoring').textContent=e.filter(t=>t.status==='monitoring').length;
-  document.getElementById('em-resolved').textContent=e.filter(t=>t.status==='resolved').length;
-  document.getElementById('tc-g').textContent=g.length;
-  document.getElementById('tc-s').textContent=s.length;
-  document.getElementById('tc-e').textContent=e.length;
-  document.getElementById('g-count').textContent=g.length+' item'+(g.length!==1?'s':'');
-  document.getElementById('s-count').textContent=s.length+' item'+(s.length!==1?'s':'');
-  document.getElementById('e-count').textContent=e.length+' item'+(e.length!==1?'s':'');
-  document.getElementById('last-upd').textContent='Updated '+ago(Date.now());
-  document.getElementById('footer-ts').textContent='MBI · ASPH Workflow Tracker · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-}
-
-function mkRow(t){
-  const m=STATUS[t.status],row=document.createElement('div');
-  row.className='trend-row';
-  const sb=t.speciality?`<span class="badge badge-spec">${esc(t.speciality)}</span>`:'';
-  const ac=sup?`<button class="icon-btn" onclick="editTrend(${t.id})">✎</button><button class="icon-btn" onclick="deleteTrend(${t.id})">✕</button>`:'';
-  row.innerHTML=`<div class="status-dot ${m.dot}"></div><div class="trend-info"><div class="trend-title">${esc(t.title)}</div><div class="trend-meta">${t.owner?esc(t.owner)+' · ':''}${fmtDate(t.ts)}</div>${t.notes?`<div class="trend-notes">${esc(t.notes)}</div>`:''}</div><div class="trend-right">${sb}<span class="badge ${m.badge}">${m.label}</span>${ac}</div>`;
-  return row;
-}
-
-function renderG(){
-  const l=document.getElementById('g-list');
-  l.querySelectorAll('.trend-row').forEach(e=>e.remove());
-  const g=trends.filter(t=>t.type==='general');
-  document.getElementById('g-empty').style.display=g.length?'none':'';
-  g.forEach(t=>l.appendChild(mkRow(t)));
-  metrics();
-}
-
-function renderS(){
-  const l=document.getElementById('s-list');
-  l.querySelectorAll('.trend-row').forEach(e=>e.remove());
-  let s=trends.filter(t=>t.type==='speciality');
-  if(filt!=='all')s=s.filter(t=>t.speciality===filt);
-  document.getElementById('s-empty').style.display=s.length?'none':'';
-  s.forEach(t=>l.appendChild(mkRow(t)));
-  metrics();
-}
-
-function renderE(){
-  const l=document.getElementById('e-list');
-  l.querySelectorAll('.trend-row').forEach(e=>e.remove());
-  const e=trends.filter(t=>t.type==='ers');
-  document.getElementById('e-empty').style.display=e.length?'none':'';
-  e.forEach(t=>l.appendChild(mkRow(t)));
-  metrics();
-}
-
-function renderAll(){renderG();renderS();renderE();}
-
-function renderAlerts(){
-  const l=document.getElementById('alert-list');
-  l.querySelectorAll('.alert-row').forEach(e=>e.remove());
-  document.getElementById('empty-alerts').style.display=alerts.length?'none':'';
-  alerts.slice(0,30).forEach(a=>{
-    const[cls,icon]=AMETA[a.type]||AMETA.info;
-    const row=document.createElement('div');row.className='alert-row';
-    const del=sup?`<button class="alert-del" onclick="removeAlert(${a.id})">✕</button>`:'';
-    row.innerHTML=`<div class="alert-icon ${cls}">${icon}</div><div style="flex:1"><div class="alert-text">${esc(a.text)}</div><div class="alert-time">${ago(a.ts)}</div></div>${del}`;
-    l.appendChild(row);
-  });
-}
-
-function pushAlert(text,type){const id=Date.now()+Math.random();alerts.unshift({id,text,type,ts:Date.now()});if(alerts.length>60)alerts.pop();save();renderAlerts();}
-function removeAlert(id){alerts=alerts.filter(a=>a.id!==id);save();renderAlerts();}
-function clearAlerts(){if(!sup)return;alerts=[];save();renderAlerts();}
-
-function applyRole(){
-  document.getElementById('view-banner').style.display=sup?'none':'flex';
-  document.getElementById('export-bar').style.display=sup?'':'none';
-  document.getElementById('role-pill').textContent=sup?'Supervisor':'View only';
-  document.getElementById('role-pill').className='role-pill '+(sup?'role-supervisor':'role-viewer');
-  document.getElementById('login-btn').style.display=sup?'none':'';
-  document.getElementById('logout-btn').style.display=sup?'':'none';
-  document.getElementById('add-btn').style.display=sup?'':'none';
-  if(sup){
-    const labels={general:'+ Add general trend',speciality:'+ Add speciality trend',ers:'+ Add ERS trend'};
-    document.getElementById('add-btn').textContent=labels[tab]||'+ Add trend';
-  }
-  document.getElementById('clear-btn').style.display=sup?'':'none';
-  document.getElementById('add-member-btn').style.display=sup?'':'none';
-  document.getElementById('notify-panel').style.display=sup?'':'none';
-  renderAll();renderAlerts();
-}
-
+// ---- SUPERVISOR SIDE ----
 function openPinModal(){['p0','p1','p2','p3'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('pin-error').textContent='';document.getElementById('pin-overlay').style.display='flex';document.getElementById('p0').focus();}
 function closePinModal(){document.getElementById('pin-overlay').style.display='none';}
 function closePinBg(e){if(e.target===document.getElementById('pin-overlay'))closePinModal();}
 function checkPin(){
   const pin=['p0','p1','p2','p3'].map(id=>document.getElementById(id).value).join('');
-  if(pin===PIN){sup=true;closePinModal();applyRole();pushAlert('Supervisor logged in','info');}
-  else{document.getElementById('pin-error').textContent='Incorrect PIN. Please try again.';['p0','p1','p2','p3'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('p0').focus();}
+  if(pin===PIN){sup=true;closePinModal();applySupRole();}
+  else{document.getElementById('pin-error').textContent='Incorrect PIN.';['p0','p1','p2','p3'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('p0').focus();}
 }
-function logout(){sup=false;pushAlert('Supervisor logged out','info');applyRole();}
-
 ['p0','p1','p2','p3'].forEach((id,i)=>{
   const el=document.getElementById(id);
   el.addEventListener('input',()=>{if(el.value.length===1&&i<3)document.getElementById('p'+(i+1)).focus();if(i===3&&el.value.length===1)checkPin();});
   el.addEventListener('keydown',e=>{if(e.key==='Backspace'&&el.value===''&&i>0)document.getElementById('p'+(i-1)).focus();if(e.key==='Enter')checkPin();});
 });
+function supLogout(){sup=false;applySupRole();}
 
+function applySupRole(){
+  document.getElementById('sup-role-pill').textContent=sup?'Supervisor':'View only';
+  document.getElementById('sup-role-pill').className='pane-role '+(sup?'pr-sup':'pr-view');
+  document.getElementById('sup-login-btn').style.display=sup?'none':'';
+  document.getElementById('sup-logout-btn').style.display=sup?'':'none';
+  document.getElementById('new-proj-btn').style.display=sup?'':'none';
+  document.getElementById('sup-edit-btn').style.display=sup?'':'none';
+  document.getElementById('sup-add-trend-btn').style.display=sup?'':'none';
+  document.getElementById('add-win-btn').style.display=sup?'':'none';
+  document.getElementById('sup-export-bar').style.display=sup?'flex':'none';
+  renderSupProjectList();
+  if(currentProjectId){const p=projects.find(x=>x.id===currentProjectId);if(p)renderSupDetail(p);}
+}
+
+// PROJECT LIST
+function renderSupProjectList(){
+  const list=document.getElementById('sup-project-list');
+  list.querySelectorAll('.project-card').forEach(e=>e.remove());
+  const empty=document.getElementById('sup-empty-projects');
+  empty.style.display=projects.length?'none':'';
+  const allTrends=projects.reduce((a,p)=>a+(p.trends||[]).length,0);
+  const totalPending=valSubmissions.filter(s=>s.status==='pending').length;
+  const active=projects.filter(p=>projectStatus(p)==='active').length;
+  document.getElementById('ps-total').textContent=projects.length;
+  document.getElementById('ps-active').textContent=active;
+  document.getElementById('ps-trends').textContent=allTrends;
+  document.getElementById('ps-pending').textContent=totalPending;
+  document.getElementById('sup-footer-list').textContent='MBI Project Tracker · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  projects.forEach(p=>{
+    const card=document.createElement('div');card.className='project-card';
+    const st=projectStatus(p);
+    const trends=p.trends||[],wins=p.wins||[];
+    const pending=valSubmissions.filter(s=>s.projectId===p.id&&s.status==='pending').length;
+    const du=daysUntil(p.endDate);
+    const endW=du!==null&&du<=30&&du>=0?`<span style="font-size:10px;color:var(--amber);">⚠ ${du}d</span>`:'';
+    card.innerHTML=`<div class="pc-top"><div><div class="pc-name">${esc(p.name)}</div><div class="pc-hospital">${esc(p.hospital)}</div></div><div class="pc-dot ${st==='active'?'pc-active':st==='ending'?'pc-ending':'pc-complete'}"></div></div><div class="pc-meta">${trends.length?`<span class="pc-badge pcb-trends">${trends.length} trend${trends.length!==1?'s':''}</span>`:''} ${wins.length?`<span class="pc-badge pcb-wins">🏆 ${wins.length}</span>`:''} ${pending?`<span class="pc-badge pcb-pending">⏳ ${pending} pending</span>`:''}</div><div class="pc-dates">${p.startDate?'Start: '+fmtDate(p.startDate+'T00:00:00')+'  ':''} ${p.endDate?'End: '+fmtDate(p.endDate+'T00:00:00')+' '+endW:''}</div><div class="pc-actions"><button class="btn btn-primary btn-sm" style="flex:1;" onclick="supOpenProject(${p.id})">Open →</button>${sup?`<button class="btn btn-sm" onclick="event.stopPropagation();editProject(${p.id})">Edit</button><button class="btn btn-sm" style="color:var(--red);" onclick="event.stopPropagation();deleteProject(${p.id})">Delete</button>`:''}</div>`;
+    list.appendChild(card);
+  });
+}
+function projectStatus(p){const du=daysUntil(p.endDate);if(du===null||du>30)return 'active';if(du>=0)return 'ending';return 'complete';}
+
+function supOpenProject(id){
+  currentProjectId=id;
+  const p=projects.find(x=>x.id===id);if(!p)return;
+  supTab='general';specFilter='all';editTrendId=null;
+  supShowScreen('sup-screen-detail');
+  applySupRole();
+  renderSupDetail(p);
+  supSwitchTab('general');
+  refreshValProjectDropdown();
+}
+function supGoBack(){currentProjectId=null;supShowScreen('sup-screen-list');renderSupProjectList();}
+function editCurrentProject(){if(currentProjectId)editProject(currentProjectId);}
+
+// PROJECT MODAL
+function openProjectModal(id){
+  if(!sup)return;
+  editProjectId=id||null;
+  const p=id?projects.find(x=>x.id===id):null;
+  document.getElementById('pm-title').textContent=p?'Edit project':'New project';
+  document.getElementById('pm-name').value=p?p.name:'';
+  document.getElementById('pm-hospital').value=p?p.hospital:NHS_TRUSTS[0];
+  document.getElementById('pm-start').value=p?p.startDate:'';
+  document.getElementById('pm-end').value=p?p.endDate:'';
+  document.getElementById('pm-notes').value=p?p.notes:'';
+  document.getElementById('project-overlay').style.display='flex';
+}
+function closeProjectModal(){document.getElementById('project-overlay').style.display='none';}
+function closeProjectBg(e){if(e.target===document.getElementById('project-overlay'))closeProjectModal();}
+function editProject(id){openProjectModal(id);}
+function deleteProject(id){if(!confirm('Delete this project and all its data?'))return;projects=projects.filter(p=>p.id!==id);saveAll();renderSupProjectList();}
+function saveProject(){
+  const name=document.getElementById('pm-name').value.trim();
+  if(!name){document.getElementById('pm-name').style.borderColor='#E24B4A';return;}
+  document.getElementById('pm-name').style.borderColor='';
+  const obj={name,hospital:document.getElementById('pm-hospital').value,startDate:document.getElementById('pm-start').value,endDate:document.getElementById('pm-end').value,notes:document.getElementById('pm-notes').value.trim()};
+  if(editProjectId){const p=projects.find(x=>x.id===editProjectId);Object.assign(p,obj);if(currentProjectId===editProjectId)renderSupDetail(p);}
+  else{projects.unshift({id:uid(),...obj,trends:[],wins:[]});}
+  saveAll();closeProjectModal();renderSupProjectList();refreshValProjectDropdown();
+}
+
+// DETAIL
+function renderSupDetail(p){
+  document.getElementById('sup-detail-title').textContent=p.name;
+  document.getElementById('sup-detail-sub').textContent=p.hospital;
+  const bar=document.getElementById('sup-info-bar');bar.innerHTML='';
+  [{label:'Hospital',val:p.hospital},{label:'Start',val:p.startDate?fmtDate(p.startDate+'T00:00:00'):null},{label:'End',val:p.endDate?fmtDate(p.endDate+'T00:00:00'):null}].filter(c=>c.val).forEach(c=>{const chip=document.createElement('span');chip.className='info-chip';chip.innerHTML=`${c.label}: <strong>${esc(c.val)}</strong>`;bar.appendChild(chip);});
+  const du=daysUntil(p.endDate);const warn=document.getElementById('contract-warning');
+  if(du!==null&&du<=30&&du>=0){warn.style.display='';warn.textContent=`⚠ Contract ending in ${du} day${du!==1?'s':''}`;} else warn.style.display='none';
+  document.getElementById('sup-footer-detail').textContent='MBI Project Tracker · '+p.name+' · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  renderTrends(p);renderWins(p);renderPending(p);
+}
+
+function supSwitchTab(t){
+  supTab=t;
+  const tabs={general:'ag',speciality:'as',ers:'ae',wins:'aw',pending:'ap'};
+  ['general','speciality','ers','wins','pending'].forEach(tab=>{
+    document.getElementById('sup-tab-'+tab).classList.toggle('active',tab===t);
+    const el=document.getElementById('stab-'+tab[0]+(tab==='wins'?'w':tab==='pending'?'p':tab==='ers'?'e':tab==='speciality'?'s':'g'));
+    if(el)el.className='tab'+(t===tab?' '+tabs[tab]:'');
+  });
+  document.getElementById('sup-add-trend-btn').style.display=sup&&t!=='wins'&&t!=='pending'?'':'none';
+  document.getElementById('add-win-btn').style.display=sup&&t==='wins'?'':'none';
+}
+
+function setSpecFilter(v){
+  specFilter=v;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.spec===v));
+  document.getElementById('spec-filter-sel').value=v;
+  const p=projects.find(x=>x.id===currentProjectId);if(p)renderTrends(p);
+}
+
+function renderTrends(p){
+  const trends=p.trends||[];
+  const g=trends.filter(t=>t.type==='general'),s=trends.filter(t=>t.type==='speciality'),e=trends.filter(t=>t.type==='ers');
+  const counts=[['g',g],['s',s],['e',e]];
+  counts.forEach(([pfx,arr])=>{
+    document.getElementById('stc-'+pfx).textContent=arr.length;
+    document.getElementById(pfx+'m-total').textContent=arr.length;
+    document.getElementById(pfx+'m-active').textContent=arr.filter(t=>t.status==='active').length;
+    document.getElementById(pfx+'m-monitoring').textContent=arr.filter(t=>t.status==='monitoring').length;
+    document.getElementById(pfx+'m-resolved').textContent=arr.filter(t=>t.status==='resolved').length;
+    document.getElementById(pfx+'-count').textContent=arr.length+' item'+(arr.length!==1?'s':'');
+  });
+  renderTrendList('g-list','g-empty',g);
+  renderTrendList('s-list','s-empty',specFilter==='all'?s:s.filter(t=>t.speciality===specFilter));
+  renderTrendList('e-list','e-empty',e);
+}
+
+function renderTrendList(listId,emptyId,arr){
+  const l=document.getElementById(listId);l.querySelectorAll('.trend-row').forEach(e=>e.remove());
+  document.getElementById(emptyId).style.display=arr.length?'none':'';
+  arr.forEach(t=>{
+    const m=STATUS_META[t.status];const row=document.createElement('div');row.className='trend-row';
+    const sb=t.speciality?`<span class="badge badge-spec">${esc(t.speciality)}</span>`:'';
+    const cb=t.cohort?`<span class="badge badge-cohort">${esc(t.cohort)}</span>`:'';
+    const ac=sup?`<button class="icon-btn" onclick="editTrend(${t.id})">✎</button><button class="icon-btn" onclick="deleteTrend(${t.id})">✕</button>`:'';
+    row.innerHTML=`<div class="status-dot ${m.dot}"></div><div class="tr-info"><div class="tr-title">${esc(t.title)}</div><div class="tr-meta">${t.owner?esc(t.owner)+' · ':''}${fmtDT(t.ts)}</div>${t.notes?`<div class="tr-notes">${esc(t.notes)}</div>`:''}</div><div class="tr-right">${cb}${sb}<span class="badge ${m.badge}">${m.label}</span>${ac}</div>`;
+    l.appendChild(row);
+  });
+}
+
+function renderWins(p){
+  const wins=p.wins||[];
+  document.getElementById('stc-w').textContent=wins.length;
+  document.getElementById('w-count').textContent=wins.length+' win'+(wins.length!==1?'s':'');
+  document.getElementById('wm-total').textContent=wins.length;
+  document.getElementById('wm-ext').textContent=wins.filter(w=>w.type==='Contract extension').length;
+  document.getElementById('wm-repeat').textContent=wins.filter(w=>w.type==='Repeat business secured').length;
+  document.getElementById('wm-improve').textContent=wins.filter(w=>w.type==='Process improvement adopted by trust').length;
+  const l=document.getElementById('w-list');l.querySelectorAll('.win-row').forEach(e=>e.remove());
+  document.getElementById('w-empty').style.display=wins.length?'none':'';
+  wins.forEach(w=>{
+    const row=document.createElement('div');row.className='win-row';
+    const ac=sup?`<button class="icon-btn" onclick="editWin(${w.id})">✎</button><button class="icon-btn" onclick="deleteWin(${w.id})">✕</button>`:'';
+    row.innerHTML=`<div class="win-icon" style="background:var(--gold-bg);">${WIN_ICONS[w.type]||'🏆'}</div><div class="win-info"><div class="win-title">${esc(w.title)}</div><div class="win-meta">${w.date?fmtDate(w.date+'T00:00:00')+' · ':''}<span class="win-type-badge">${esc(w.type)}</span></div>${w.notes?`<div class="win-notes">${esc(w.notes)}</div>`:''}</div><div style="display:flex;gap:5px;">${ac}</div>`;
+    l.appendChild(row);
+  });
+}
+
+function renderPending(p){
+  const pending=valSubmissions.filter(s=>s.projectId===p.id&&s.status==='pending');
+  document.getElementById('stc-p').textContent=pending.length;
+  document.getElementById('p-count').textContent=pending.length+' pending';
+  const l=document.getElementById('p-list');l.querySelectorAll('.submission-card').forEach(e=>e.remove());
+  document.getElementById('p-empty').style.display=pending.length?'none':'';
+  pending.forEach(s=>{
+    const card=document.createElement('div');card.className='submission-card';
+    card.innerHTML=`
+      <div class="sub-header">
+        <div><div class="sub-title">${esc(s.title)}</div><div class="sub-meta">From: <strong>${esc(s.validatorName)}</strong> · ${fmtDT(s.ts)}</div></div>
+        <span class="badge badge-pending">Pending</span>
+      </div>
+      ${s.notes?`<div class="sub-notes">${esc(s.notes)}</div>`:''}
+      <div class="sub-badges">
+        ${s.cohort?`<span class="badge badge-cohort">${esc(s.cohort)}</span>`:''}
+        ${s.speciality?`<span class="badge badge-spec">${esc(s.speciality)}</span>`:''}
+        <span class="badge" style="background:var(--surface2);color:var(--text-2);">${esc(s.type||'general')}</span>
+      </div>
+      <textarea class="sup-note-input" id="supnote-${s.id}" placeholder="Add supervisor notes before approving (optional)..."></textarea>
+      <div class="sub-actions">
+        <button class="btn btn-green btn-sm" onclick="openApproveModal(${s.id})">✓ Approve &amp; publish</button>
+        <button class="btn btn-amber btn-sm" onclick="requestMoreDetail(${s.id})">? Request more detail</button>
+        <button class="btn btn-red btn-sm" onclick="rejectSubmission(${s.id})">✕ Reject</button>
+      </div>`;
+    l.appendChild(card);
+  });
+}
+
+// TREND MODAL (supervisor)
 function openTrendModal(id){
   if(!sup)return;
-  editId=id||null;
-  const t=id?trends.find(x=>x.id===id):null;
-  const type=t?t.type:tab;
-  const ttls={general:'Log a general trend',speciality:'Log a speciality trend',ers:'Log an ERS trend'};
-  const badgeCls={general:'tmodal-badge-g',speciality:'tmodal-badge-s',ers:'tmodal-badge-e'};
-  const badgeTxt={general:'General',speciality:'Speciality',ers:'ERS'};
-  document.getElementById('t-ttl').textContent=t?'Edit trend':ttls[type];
-  const b=document.getElementById('t-badge');
-  b.textContent=t?(badgeTxt[t.type]||t.type):badgeTxt[type];
-  b.className='tmodal-badge '+(t?badgeCls[t.type]:badgeCls[type]);
-  document.getElementById('f-title').value=t?t.title:'';
-  document.getElementById('f-notes').value=t?t.notes:'';
-  document.getElementById('f-status').value=t?t.status:'new';
-  document.getElementById('f-owner').value=t?t.owner:'';
-  document.getElementById('spec-field').style.display=type==='speciality'?'':'none';
-  if(t&&t.speciality)document.getElementById('f-spec').value=t.speciality;
+  editTrendId=id||null;
+  const p=projects.find(x=>x.id===currentProjectId);if(!p)return;
+  const t=id?(p.trends||[]).find(x=>x.id===id):null;
+  const type=t?t.type:supTab==='wins'||supTab==='pending'?'general':supTab;
+  document.getElementById('tm-title').textContent=t?'Edit trend':'Log a trend';
+  document.getElementById('tm-type').value=type;
+  document.getElementById('tm-title-input').value=t?t.title:'';
+  document.getElementById('tm-notes').value=t?t.notes:'';
+  document.getElementById('tm-status').value=t?t.status:'new';
+  document.getElementById('tm-owner').value=t?t.owner:'';
+  refreshCohortDD('tm-cohort');
+  document.getElementById('tm-cohort').value=t?t.cohort||'':'';
+  if(t&&t.speciality)document.getElementById('tm-spec').value=t.speciality;
+  onTrendTypeChange();
   document.getElementById('trend-overlay').style.display='flex';
-  document.getElementById('trend-overlay').dataset.type=type;
-  document.getElementById('f-title').focus();
+  document.getElementById('tm-title-input').focus();
 }
-function editTrend(id){openTrendModal(id);}
+function onTrendTypeChange(){
+  const type=document.getElementById('tm-type').value;
+  const map={general:['mb-g','General'],speciality:['mb-s','Speciality'],ers:['mb-e','ERS']};
+  const[cls,txt]=map[type]||['mb-g','General'];
+  const b=document.getElementById('tm-badge');b.className='modal-badge '+cls;b.textContent=txt;
+  document.getElementById('tm-spec-field').style.display=type==='speciality'?'':'none';
+}
 function closeTrendModal(){document.getElementById('trend-overlay').style.display='none';}
 function closeTrendBg(e){if(e.target===document.getElementById('trend-overlay'))closeTrendModal();}
-
 function saveTrend(){
   if(!sup)return;
-  const title=document.getElementById('f-title').value.trim();
-  if(!title){document.getElementById('f-title').style.borderColor='#E24B4A';return;}
-  document.getElementById('f-title').style.borderColor='';
-  const type=document.getElementById('trend-overlay').dataset.type||tab;
-  const status=document.getElementById('f-status').value;
-  const notes=document.getElementById('f-notes').value.trim();
-  const owner=document.getElementById('f-owner').value.trim();
-  const speciality=type==='speciality'?document.getElementById('f-spec').value:null;
-  if(editId){
-    const t=trends.find(x=>x.id===editId),old=t.status;
-    Object.assign(t,{title,status,notes,owner,speciality,ts:Date.now()});
-    if(old!==status)pushAlert(`"${title}" status: ${STATUS[old].label} → ${STATUS[status].label}`,'change');
-    else pushAlert(`Trend updated: "${title}"`,'info');
-  }else{
-    trends.unshift({id:Date.now(),type,title,status,notes,owner,speciality,ts:Date.now()});
-    const sp=speciality?` [${speciality}]`:'';
-    pushAlert(`New ${type} trend: "${title}"${sp} [${STATUS[status].label}]`,type==='speciality'?'spec':'new');
-  }
-  save();renderAll();closeTrendModal();
+  const title=document.getElementById('tm-title-input').value.trim();
+  if(!title){document.getElementById('tm-title-input').style.borderColor='#E24B4A';return;}
+  document.getElementById('tm-title-input').style.borderColor='';
+  const p=projects.find(x=>x.id===currentProjectId);if(!p)return;
+  if(!p.trends)p.trends=[];
+  const type=document.getElementById('tm-type').value;
+  const obj={type,title,notes:document.getElementById('tm-notes').value.trim(),status:document.getElementById('tm-status').value,owner:document.getElementById('tm-owner').value.trim(),cohort:document.getElementById('tm-cohort').value||null,speciality:type==='speciality'?document.getElementById('tm-spec').value:null,ts:Date.now()};
+  if(editTrendId){const t=p.trends.find(x=>x.id===editTrendId);Object.assign(t,obj);}
+  else p.trends.unshift({id:uid(),...obj});
+  saveAll();renderSupDetail(p);closeTrendModal();
 }
+function editTrend(id){openTrendModal(id);}
+function deleteTrend(id){const p=projects.find(x=>x.id===currentProjectId);if(!p)return;p.trends=p.trends.filter(t=>t.id!==id);saveAll();renderSupDetail(p);}
 
-function deleteTrend(id){
+// WIN MODAL
+function openWinModal(id){
+  if(!sup)return;editWinId=id||null;
+  const p=projects.find(x=>x.id===currentProjectId);if(!p)return;
+  const w=id?(p.wins||[]).find(x=>x.id===id):null;
+  document.getElementById('wm-modal-title').textContent=w?'Edit win':'Log a win';
+  document.getElementById('wm-type').value=w?w.type:'Contract extension';
+  document.getElementById('wm-title-input').value=w?w.title:'';
+  document.getElementById('wm-notes').value=w?w.notes:'';
+  document.getElementById('wm-date').value=w?w.date:'';
+  document.getElementById('win-overlay').style.display='flex';
+}
+function closeWinModal(){document.getElementById('win-overlay').style.display='none';}
+function closeWinBg(e){if(e.target===document.getElementById('win-overlay'))closeWinModal();}
+function saveWin(){
   if(!sup)return;
-  const t=trends.find(x=>x.id===id);if(!t)return;
-  trends=trends.filter(x=>x.id!==id);
-  pushAlert(`Trend removed: "${t.title}"`,'change');
-  save();renderAll();
+  const title=document.getElementById('wm-title-input').value.trim();
+  if(!title){document.getElementById('wm-title-input').style.borderColor='#E24B4A';return;}
+  document.getElementById('wm-title-input').style.borderColor='';
+  const p=projects.find(x=>x.id===currentProjectId);if(!p)return;
+  if(!p.wins)p.wins=[];
+  const obj={type:document.getElementById('wm-type').value,title,notes:document.getElementById('wm-notes').value.trim(),date:document.getElementById('wm-date').value,ts:Date.now()};
+  if(editWinId){const w=p.wins.find(x=>x.id===editWinId);Object.assign(w,obj);}
+  else p.wins.unshift({id:uid(),...obj});
+  saveAll();renderSupDetail(p);closeWinModal();
+}
+function editWin(id){openWinModal(id);}
+function deleteWin(id){const p=projects.find(x=>x.id===currentProjectId);if(!p)return;p.wins=p.wins.filter(w=>w.id!==id);saveAll();renderSupDetail(p);}
+
+// SUBMISSION REVIEW
+function openApproveModal(subId){
+  approvingSubId=subId;
+  const s=valSubmissions.find(x=>x.id===subId);if(!s)return;
+  const supNoteEl=document.getElementById('supnote-'+subId);
+  const existingNote=supNoteEl?supNoteEl.value.trim():'';
+  document.getElementById('approve-notes').value=existingNote;
+  document.getElementById('approve-sub-preview').innerHTML=`<strong>${esc(s.title)}</strong><br/><span style="color:var(--text-3);font-size:11px;">From: ${esc(s.validatorName)} · ${esc(s.cohort||'—')} · ${esc(s.speciality||'—')}</span>${s.notes?`<br/><span style="color:var(--text-2);">${esc(s.notes)}</span>`:''}`;
+  document.getElementById('approve-overlay').style.display='flex';
+}
+function closeApproveModal(){document.getElementById('approve-overlay').style.display='none';approvingSubId=null;}
+function closeApproveBg(e){if(e.target===document.getElementById('approve-overlay'))closeApproveModal();}
+function confirmApprove(){
+  const s=valSubmissions.find(x=>x.id===approvingSubId);if(!s)return;
+  const supNote=document.getElementById('approve-notes').value.trim();
+  s.status='approved';s.supervisorNote=supNote;s.reviewedAt=Date.now();
+  // Add to approved permanent list
+  approvedTrends.unshift({id:uid(),title:s.title,notes:s.notes,type:s.type,cohort:s.cohort,speciality:s.speciality,validatorName:s.validatorName,supervisorNote:supNote,projectId:s.projectId,approvedAt:Date.now()});
+  // Also add to project trends
+  const p=projects.find(x=>x.id===s.projectId);
+  if(p){if(!p.trends)p.trends=[];p.trends.unshift({id:uid(),type:s.type||'general',title:s.title,notes:s.notes,cohort:s.cohort,speciality:s.speciality,owner:s.validatorName,status:'active',ts:Date.now()});}
+  // Notify validator
+  valNotifs.unshift({id:uid(),validatorName:s.validatorName,type:'approved',title:s.title,supervisorNote:supNote,ts:Date.now(),read:false});
+  saveAll();closeApproveModal();
+  if(p)renderSupDetail(p);
+  if(valName)renderValWorkspace();
+}
+function requestMoreDetail(subId){
+  const s=valSubmissions.find(x=>x.id===subId);if(!s)return;
+  const supNoteEl=document.getElementById('supnote-'+subId);
+  const note=supNoteEl?supNoteEl.value.trim():'Please provide more detail.';
+  s.status='more-detail';s.supervisorNote=note||'Please provide more detail.';s.reviewedAt=Date.now();
+  valNotifs.unshift({id:uid(),validatorName:s.validatorName,type:'more',title:s.title,supervisorNote:s.supervisorNote,ts:Date.now(),read:false});
+  saveAll();const p=projects.find(x=>x.id===currentProjectId);if(p)renderSupDetail(p);
+  if(valName)renderValWorkspace();
+}
+function rejectSubmission(subId){
+  const s=valSubmissions.find(x=>x.id===subId);if(!s)return;
+  const supNoteEl=document.getElementById('supnote-'+subId);
+  const note=supNoteEl?supNoteEl.value.trim():'';
+  s.status='rejected';s.supervisorNote=note;s.reviewedAt=Date.now();
+  valNotifs.unshift({id:uid(),validatorName:s.validatorName,type:'rejected',title:s.title,supervisorNote:note,ts:Date.now(),read:false});
+  saveAll();const p=projects.find(x=>x.id===currentProjectId);if(p)renderSupDetail(p);
+  if(valName)renderValWorkspace();
 }
 
-function sendNotif(){
-  if(!sup)return;
-  const msg=document.getElementById('notif-msg').value.trim();if(!msg)return;
-  pushAlert(msg,document.getElementById('notif-type').value);
-  document.getElementById('notif-msg').value='';
+// ---- VALIDATOR SIDE ----
+function valLogin(){
+  const name=document.getElementById('val-name-input').value.trim();
+  if(!name){document.getElementById('val-name-input').style.borderColor='var(--red)';return;}
+  document.getElementById('val-name-input').style.borderColor='';
+  valName=name;
+  document.getElementById('val-role-pill').textContent=name;
+  document.getElementById('val-role-pill').style.display='';
+  document.getElementById('val-logout-btn').style.display='';
+  valShowScreen('val-screen-workspace');
+  refreshValProjectDropdown();
+  refreshValCohortDD();
+  renderValWorkspace();
+  valSwitchTab('submit');
+}
+function valLogout(){valName=null;document.getElementById('val-name-input').value='';document.getElementById('val-role-pill').style.display='none';document.getElementById('val-logout-btn').style.display='none';valShowScreen('val-screen-login');}
+document.getElementById('val-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')valLogin();});
+
+function refreshValProjectDropdown(){
+  const sel=document.getElementById('val-project-sel');
+  sel.innerHTML='<option value="">— Select project —</option>';
+  projects.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name+' ('+p.hospital+')';sel.appendChild(o);});
+}
+function onValProjectChange(){/* future: filter cohorts by project */}
+
+function valSwitchTab(t){
+  ['submit','approved','mine'].forEach(tab=>{
+    document.getElementById('val-tab-'+tab).classList.toggle('active',tab===t);
+    const el=document.getElementById('vtab-'+tab);
+    if(el)el.className='tab'+(t===tab?' ag':'');
+  });
 }
 
-function addMember(){
-  if(!sup)return;
-  const name=prompt('Enter team member name:');if(!name)return;
-  const init=name.trim().substring(0,2).toUpperCase();
-  const row=document.getElementById('team-row');
-  const av=document.createElement('div');
-  av.className=`avatar ${AVC[mc%AVC.length]}`;av.title=name.trim();av.textContent=init;
-  av.onclick=()=>pingMember(name.trim());row.appendChild(av);mc++;
-  pushAlert(`${name.trim()} added to the team`,'info');
+function submitValTrend(){
+  if(!valName){alert('Please sign in first.');return;}
+  const projectId=document.getElementById('val-project-sel').value;
+  if(!projectId){alert('Please select a project.');return;}
+  const title=document.getElementById('val-title').value.trim();
+  if(!title){document.getElementById('val-title').style.borderColor='var(--red)';return;}
+  document.getElementById('val-title').style.borderColor='';
+  const sub={
+    id:uid(),projectId:Number(projectId),validatorName:valName,
+    cohort:document.getElementById('val-cohort-sel').value||null,
+    speciality:document.getElementById('val-spec-sel').value||null,
+    type:document.getElementById('val-type-sel').value,
+    title,notes:document.getElementById('val-notes').value.trim(),
+    status:'pending',ts:Date.now()
+  };
+  valSubmissions.unshift(sub);
+  saveAll();
+  // Clear form
+  document.getElementById('val-title').value='';document.getElementById('val-notes').value='';
+  // Show confirmation
+  valNotifs.unshift({id:uid(),validatorName:valName,type:'submitted',title,ts:Date.now(),read:false,mine:true});
+  saveAll();
+  renderValWorkspace();
+  valSwitchTab('mine');
+  // Refresh supervisor pending if open
+  if(currentProjectId){const p=projects.find(x=>x.id===currentProjectId);if(p)renderSupDetail(p);}
+  renderSupProjectList();
 }
-function pingMember(name){if(!sup)return;pushAlert(`Alert sent to ${name}`,'info');}
 
-// EXPORT / REPORT
-function openReportModal(type){document.getElementById('r-title').value='';document.getElementById('report-overlay').style.display='flex';}
+function renderValWorkspace(){
+  if(!valName)return;
+  renderValNotifs();
+  renderApprovedTrends();
+  renderMySubmissions();
+  document.getElementById('val-footer').textContent='MBI Validator · '+valName+' · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+function renderValNotifs(){
+  const container=document.getElementById('val-notifs');
+  container.innerHTML='';
+  const myNotifs=valNotifs.filter(n=>n.validatorName===valName&&!n.read).slice(0,5);
+  myNotifs.forEach(n=>{
+    const div=document.createElement('div');
+    let cls='notif-pending',icon='⏳',msg='';
+    if(n.type==='approved'){cls='notif-approved';icon='✅';msg=`<strong>Trend approved!</strong> "${esc(n.title)}" has been approved and added to the permanent list.${n.supervisorNote?` Supervisor note: "${esc(n.supervisorNote)}"`:''}`;}
+    else if(n.type==='rejected'){cls='notif-rejected';icon='❌';msg=`<strong>Trend not approved.</strong> "${esc(n.title)}" was not approved.${n.supervisorNote?` Reason: "${esc(n.supervisorNote)}"`:''}`;}
+    else if(n.type==='more'){cls='notif-more';icon='💬';msg=`<strong>More detail requested.</strong> "${esc(n.title)}" — Supervisor says: "${esc(n.supervisorNote)}"`;}
+    else{cls='notif-pending';icon='⏳';msg=`<strong>Submitted for review.</strong> "${esc(n.title)}" has been sent to your supervisor.`;}
+    div.className='notif-banner '+cls;
+    div.innerHTML=`<span class="notif-icon">${icon}</span><div class="notif-text">${msg}</div><button class="notif-dismiss" onclick="dismissNotif(${n.id})">✕</button>`;
+    container.appendChild(div);
+  });
+}
+function dismissNotif(id){const n=valNotifs.find(x=>x.id===id);if(n)n.read=true;saveAll();renderValNotifs();}
+
+function renderApprovedTrends(){
+  const cohortFilter=document.getElementById('val-filter-cohort').value;
+  const specFilter=document.getElementById('val-filter-spec').value;
+  let arr=approvedTrends;
+  if(cohortFilter)arr=arr.filter(t=>t.cohort===cohortFilter);
+  if(specFilter)arr=arr.filter(t=>t.speciality===specFilter);
+  document.getElementById('vtc-approved').textContent=approvedTrends.length;
+  const l=document.getElementById('val-approved-list');l.querySelectorAll('.approved-card').forEach(e=>e.remove());
+  document.getElementById('val-approved-empty').style.display=arr.length?'none':'';
+  arr.forEach(t=>{
+    const card=document.createElement('div');card.className='approved-card';
+    card.innerHTML=`<div class="ac-title">${esc(t.title)}</div><div class="ac-meta">Submitted by ${esc(t.validatorName)} · Approved ${fmtDate(t.approvedAt)}</div>${t.notes?`<div class="ac-notes">${esc(t.notes)}</div>`:''}<div class="ac-badges">${t.cohort?`<span class="badge badge-cohort">${esc(t.cohort)}</span>`:''} ${t.speciality?`<span class="badge badge-spec">${esc(t.speciality)}</span>`:''} <span class="badge" style="background:var(--surface2);color:var(--text-2);">${esc(t.type||'general')}</span></div>${t.supervisorNote?`<div class="ac-sup-note">💬 Supervisor: ${esc(t.supervisorNote)}</div>`:''}`;
+    l.appendChild(card);
+  });
+}
+
+function renderMySubmissions(){
+  const mine=valSubmissions.filter(s=>s.validatorName===valName);
+  document.getElementById('vtc-mine').textContent=mine.length;
+  document.getElementById('val-mine-count').textContent=mine.length+' submission'+(mine.length!==1?'s':'');
+  const l=document.getElementById('val-mine-list');l.querySelectorAll('.approved-card').forEach(e=>e.remove());
+  document.getElementById('val-mine-empty').style.display=mine.length?'none':'';
+  mine.forEach(s=>{
+    const card=document.createElement('div');
+    const statusMap={pending:'badge-pending',approved:'badge-approved',rejected:'badge-rejected','more-detail':'badge-more'};
+    const statusLabel={pending:'Pending review',approved:'Approved ✅',rejected:'Not approved','more-detail':'More detail requested 💬'};
+    card.className='approved-card';
+    card.innerHTML=`<div class="ac-title">${esc(s.title)}</div><div class="ac-meta">Submitted ${fmtDT(s.ts)}${s.reviewedAt?' · Reviewed '+fmtDT(s.reviewedAt):''}</div>${s.notes?`<div class="ac-notes">${esc(s.notes)}</div>`:''}<div class="ac-badges">${s.cohort?`<span class="badge badge-cohort">${esc(s.cohort)}</span>`:''} ${s.speciality?`<span class="badge badge-spec">${esc(s.speciality)}</span>`:''} <span class="badge ${statusMap[s.status]||'badge-pending'}">${statusLabel[s.status]||s.status}</span></div>${s.supervisorNote?`<div class="ac-sup-note">💬 Supervisor: ${esc(s.supervisorNote)}</div>`:''}`;
+    l.appendChild(card);
+  });
+}
+
+// EXPORT
+function openReportModal(){const p=projects.find(x=>x.id===currentProjectId);document.getElementById('r-title').value=p?p.name:'';document.getElementById('report-overlay').style.display='flex';}
 function closeReportModal(){document.getElementById('report-overlay').style.display='none';}
 function closeReportBg(e){if(e.target===document.getElementById('report-overlay'))closeReportModal();}
-
-function getExportTrends(){
-  const scope=document.getElementById('r-scope').value;
-  if(scope==='general')return trends.filter(t=>t.type==='general');
-  if(scope==='speciality')return trends.filter(t=>t.type==='speciality');
-  if(scope==='ers')return trends.filter(t=>t.type==='ers');
-  return trends;
-}
-
+function getExportTrends(){const p=projects.find(x=>x.id===currentProjectId);if(!p)return[];const scope=document.getElementById('r-scope').value;const trends=p.trends||[];if(scope==='general')return trends.filter(t=>t.type==='general');if(scope==='speciality')return trends.filter(t=>t.type==='speciality');if(scope==='ers')return trends.filter(t=>t.type==='ers');return trends;}
 function doExport(format){
-  const title=document.getElementById('r-title').value.trim()||'MBI Workflow Trends Report';
-  const data=getExportTrends();
-  if(data.length===0){alert('No trends to export. Please add some trends first.');return;}
-  if(format==='excel') exportExcel(title,data);
-  else exportPDF(title,data);
+  const p=projects.find(x=>x.id===currentProjectId);if(!p)return;
+  const title=(document.getElementById('r-title')?document.getElementById('r-title').value.trim():'')||p.name;
+  const trends=getExportTrends();
+  if(format==='excel')exportExcel(p,title,trends);else exportPDF(p,title,trends);
   closeReportModal();
 }
-
-function exportExcel(title,data){
+function exportExcel(p,title,data){
   const wb=XLSX.utils.book_new();
-  // Summary sheet
-  const g=data.filter(t=>t.type==='general'),s=data.filter(t=>t.type==='speciality'),e=data.filter(t=>t.type==='ers');
-  const summary=[
-    ['MBI Workflow Tracker — '+title],
-    ['Generated',fmtDate(Date.now())],
-    [''],
-    ['SUMMARY'],
-    ['Total Trends',data.length],
-    ['General Trends',g.length],
-    ['Speciality Trends',s.length],
-    ['ERS Trends',e.length],
-    [''],
-    ['BY STATUS'],
-    ['New',data.filter(t=>t.status==='new').length],
-    ['Active',data.filter(t=>t.status==='active').length],
-    ['Monitoring',data.filter(t=>t.status==='monitoring').length],
-    ['Resolved',data.filter(t=>t.status==='resolved').length],
-  ];
-  const ws1=XLSX.utils.aoa_to_sheet(summary);
-  ws1['!cols']=[{wch:25},{wch:40}];
-  XLSX.utils.book_append_sheet(wb,ws1,'Summary');
-  // All trends sheet
-  const typeLabel={general:'General',speciality:'Speciality',ers:'ERS'};
-  const rows=[['Type','Title','Status','Speciality','Owner','Notes','Date Logged']];
-  data.forEach(t=>{
-    rows.push([
-      typeLabel[t.type]||t.type,
-      t.title,
-      STATUS[t.status].label,
-      t.speciality||'—',
-      t.owner||'—',
-      t.notes||'—',
-      fmtDate(t.ts)
-    ]);
-  });
-  const ws2=XLSX.utils.aoa_to_sheet(rows);
-  ws2['!cols']=[{wch:12},{wch:35},{wch:12},{wch:28},{wch:18},{wch:50},{wch:22}];
-  XLSX.utils.book_append_sheet(wb,ws2,'All Trends');
-  // General sheet
-  if(g.length){
-    const gr=[['Title','Status','Owner','Notes','Date Logged']];
-    g.forEach(t=>gr.push([t.title,STATUS[t.status].label,t.owner||'—',t.notes||'—',fmtDate(t.ts)]));
-    const ws3=XLSX.utils.aoa_to_sheet(gr);
-    ws3['!cols']=[{wch:35},{wch:12},{wch:18},{wch:55},{wch:22}];
-    XLSX.utils.book_append_sheet(wb,ws3,'General Trends');
-  }
-  // Speciality sheet
-  if(s.length){
-    const sr=[['Speciality','Title','Status','Owner','Notes','Date Logged']];
-    s.forEach(t=>sr.push([t.speciality||'—',t.title,STATUS[t.status].label,t.owner||'—',t.notes||'—',fmtDate(t.ts)]));
-    const ws4=XLSX.utils.aoa_to_sheet(sr);
-    ws4['!cols']=[{wch:28},{wch:35},{wch:12},{wch:18},{wch:55},{wch:22}];
-    XLSX.utils.book_append_sheet(wb,ws4,'Speciality Trends');
-  }
-  // ERS sheet
-  if(e.length){
-    const er=[['Title','Status','Owner','Notes','Date Logged']];
-    e.forEach(t=>er.push([t.title,STATUS[t.status].label,t.owner||'—',t.notes||'—',fmtDate(t.ts)]));
-    const ws5=XLSX.utils.aoa_to_sheet(er);
-    ws5['!cols']=[{wch:35},{wch:12},{wch:18},{wch:55},{wch:22}];
-    XLSX.utils.book_append_sheet(wb,ws5,'ERS Trends');
-  }
-  const fname=title.replace(/[^a-z0-9]/gi,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
-  XLSX.writeFile(wb,fname);
+  const g=data.filter(t=>t.type==='general'),s=data.filter(t=>t.type==='speciality'),e=data.filter(t=>t.type==='ers'),w=p.wins||[];
+  const approved=approvedTrends.filter(t=>t.projectId===p.id);
+  const summary=[['MBI Project Tracker — '+title],['Generated',fmtDT(Date.now())],['Hospital',p.hospital||'—'],['Start',p.startDate?fmtDate(p.startDate+'T00:00:00'):'—'],['End',p.endDate?fmtDate(p.endDate+'T00:00:00'):'—'],[''],['TRENDS'],['Total',data.length],['General',g.length],['Speciality',s.length],['ERS',e.length],[''],['WINS'],['Total',w.length],[''],['APPROVED VALIDATOR TRENDS'],['Total',approved.length]];
+  const ws1=XLSX.utils.aoa_to_sheet(summary);ws1['!cols']=[{wch:25},{wch:40}];XLSX.utils.book_append_sheet(wb,ws1,'Summary');
+  const tL={general:'General',speciality:'Speciality',ers:'ERS'};
+  const rows=[['Type','Cohort','Speciality','Title','Status','Owner','Notes','Date']];
+  data.forEach(t=>rows.push([tL[t.type]||t.type,t.cohort||'—',t.speciality||'—',t.title,STATUS_META[t.status].label,t.owner||'—',t.notes||'—',fmtDT(t.ts)]));
+  const ws2=XLSX.utils.aoa_to_sheet(rows);ws2['!cols']=[{wch:12},{wch:15},{wch:25},{wch:35},{wch:12},{wch:18},{wch:50},{wch:22}];XLSX.utils.book_append_sheet(wb,ws2,'All Trends');
+  if(w.length){const wr=[['Type','Title','Details','Date']];w.forEach(x=>wr.push([x.type,x.title,x.notes||'—',x.date?fmtDate(x.date+'T00:00:00'):'—']));const ws=XLSX.utils.aoa_to_sheet(wr);ws['!cols']=[{wch:35},{wch:35},{wch:60},{wch:18}];XLSX.utils.book_append_sheet(wb,ws,'Win Log');}
+  if(approved.length){const ar=[['Cohort','Speciality','Title','Notes','Submitted by','Supervisor note','Approved date']];approved.forEach(t=>ar.push([t.cohort||'—',t.speciality||'—',t.title,t.notes||'—',t.validatorName,t.supervisorNote||'—',fmtDate(t.approvedAt)]));const ws=XLSX.utils.aoa_to_sheet(ar);ws['!cols']=[{wch:15},{wch:25},{wch:35},{wch:50},{wch:20},{wch:40},{wch:18}];XLSX.utils.book_append_sheet(wb,ws,'Approved Validator Trends');}
+  XLSX.writeFile(wb,title.replace(/[^a-z0-9]/gi,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
-
-function exportPDF(title,data){
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const g=data.filter(t=>t.type==='general'),s=data.filter(t=>t.type==='speciality'),e=data.filter(t=>t.type==='ers');
+function exportPDF(p,title,data){
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const g=data.filter(t=>t.type==='general'),s=data.filter(t=>t.type==='speciality'),e=data.filter(t=>t.type==='ers'),w=p.wins||[];
   const pageW=doc.internal.pageSize.getWidth();
-  const now=fmtDate(Date.now());
-  // Header
-  doc.setFillColor(26,28,22);
-  doc.rect(0,0,pageW,22,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(14);doc.setFont('helvetica','bold');
-  doc.text('MBI Workflow Tracker',14,10);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.text('Ashford & St Peters Hospitals NHS Foundation Trust',14,16);
-  doc.setTextColor(26,28,22);
-  // Title & date
-  doc.setFontSize(18);doc.setFont('helvetica','bold');
-  doc.text(title,14,34);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.setTextColor(100,100,100);
-  doc.text('Generated: '+now,14,40);
-  doc.setTextColor(26,28,22);
-  // Summary boxes
-  doc.setFontSize(11);doc.setFont('helvetica','bold');
-  doc.text('Summary',14,52);
-  const boxes=[
-    {label:'Total',val:data.length,col:[240,240,235]},
-    {label:'Active',val:data.filter(t=>t.status==='active').length,col:[230,245,237]},
-    {label:'Monitoring',val:data.filter(t=>t.status==='monitoring').length,col:[254,243,226]},
-    {label:'Resolved',val:data.filter(t=>t.status==='resolved').length,col:[240,239,233]},
-  ];
-  boxes.forEach((b,i)=>{
-    const x=14+(i*47);
-    doc.setFillColor(...b.col);
-    doc.roundedRect(x,56,43,18,2,2,'F');
-    doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(26,28,22);
-    doc.text(String(b.val),x+5,67);
-    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);
-    doc.text(b.label,x+5,72);
-  });
-  doc.setTextColor(26,28,22);
-  let y=84;
-  // General trends table
-  if(g.length){
-    doc.setFontSize(11);doc.setFont('helvetica','bold');
-    doc.text('General Trends ('+g.length+')',14,y);y+=4;
-    doc.autoTable({
-      startY:y,
-      head:[['Title','Status','Owner','Notes','Date']],
-      body:g.map(t=>[t.title,STATUS[t.status].label,t.owner||'—',t.notes?t.notes.substring(0,80)+(t.notes.length>80?'…':''):'—',fmtDate(t.ts)]),
-      styles:{fontSize:8,cellPadding:3},
-      headStyles:{fillColor:[26,28,22],textColor:255,fontStyle:'bold'},
-      columnStyles:{0:{cellWidth:42},1:{cellWidth:20},2:{cellWidth:22},3:{cellWidth:65},4:{cellWidth:30}},
-      alternateRowStyles:{fillColor:[247,246,243]},
-      margin:{left:14,right:14},
-    });
-    y=doc.lastAutoTable.finalY+10;
-  }
-  // Speciality trends table
-  if(s.length){
-    if(y>240){doc.addPage();y=20;}
-    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(26,28,22);
-    doc.text('Speciality Trends ('+s.length+')',14,y);y+=4;
-    doc.autoTable({
-      startY:y,
-      head:[['Speciality','Title','Status','Owner','Notes','Date']],
-      body:s.map(t=>[t.speciality||'—',t.title,STATUS[t.status].label,t.owner||'—',t.notes?t.notes.substring(0,60)+(t.notes.length>60?'…':''):'—',fmtDate(t.ts)]),
-      styles:{fontSize:8,cellPadding:3},
-      headStyles:{fillColor:[91,53,176],textColor:255,fontStyle:'bold'},
-      columnStyles:{0:{cellWidth:32},1:{cellWidth:35},2:{cellWidth:18},3:{cellWidth:20},4:{cellWidth:50},5:{cellWidth:24}},
-      alternateRowStyles:{fillColor:[247,246,243]},
-      margin:{left:14,right:14},
-    });
-  }
-  // ERS trends table
-  if(e.length){
-    if(y>240){doc.addPage();y=20;}
-    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(26,28,22);
-    doc.text('ERS Trends ('+e.length+')',14,y);y+=4;
-    doc.autoTable({
-      startY:y,
-      head:[['Title','Status','Owner','Notes','Date']],
-      body:e.map(t=>[t.title,STATUS[t.status].label,t.owner||'—',t.notes?t.notes.substring(0,80)+(t.notes.length>80?'…':''):'—',fmtDate(t.ts)]),
-      styles:{fontSize:8,cellPadding:3},
-      headStyles:{fillColor:[26,138,90],textColor:255,fontStyle:'bold'},
-      columnStyles:{0:{cellWidth:42},1:{cellWidth:20},2:{cellWidth:22},3:{cellWidth:65},4:{cellWidth:30}},
-      alternateRowStyles:{fillColor:[247,246,243]},
-      margin:{left:14,right:14},
-    });
-  }
-  // Footer on all pages
-  const pageCount=doc.internal.getNumberOfPages();
-  for(let i=1;i<=pageCount;i++){
-    doc.setPage(i);
-    doc.setFontSize(8);doc.setTextColor(160,160,160);
-    doc.text('MBI Confidential — '+title+' — Page '+i+' of '+pageCount,14,doc.internal.pageSize.getHeight()-8);
-  }
-  const fname=title.replace(/[^a-z0-9]/gi,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
-  doc.save(fname);
+  doc.setFillColor(26,28,22);doc.rect(0,0,pageW,22,'F');doc.setTextColor(255,255,255);doc.setFontSize(14);doc.setFont('helvetica','bold');doc.text('MBI Project Tracker',14,10);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(p.hospital||'',14,16);doc.setTextColor(26,28,22);
+  doc.setFontSize(18);doc.setFont('helvetica','bold');doc.text(title,14,34);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);doc.text('Generated: '+fmtDT(Date.now()),14,40);doc.setTextColor(26,28,22);
+  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('Summary',14,52);
+  const boxes=[{label:'Total Trends',val:data.length,col:[240,240,235]},{label:'Active',val:data.filter(t=>t.status==='active').length,col:[230,245,237]},{label:'Wins',val:w.length,col:[254,249,231]},{label:'Val. Trends',val:approvedTrends.filter(t=>t.projectId===p.id).length,col:[224,242,254]}];
+  boxes.forEach((b,i)=>{const x=14+(i*47);doc.setFillColor(...b.col);doc.roundedRect(x,56,43,18,2,2,'F');doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(26,28,22);doc.text(String(b.val),x+5,67);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);doc.text(b.label,x+5,72);});
+  doc.setTextColor(26,28,22);let y=87;
+  const addT=(label,arr,head,body,hc)=>{if(!arr.length)return;if(y>240){doc.addPage();y=20;}doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(26,28,22);doc.text(label+' ('+arr.length+')',14,y);y+=4;doc.autoTable({startY:y,head:[head],body,styles:{fontSize:8,cellPadding:3},headStyles:{fillColor:hc,textColor:255,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,246,243]},margin:{left:14,right:14}});y=doc.lastAutoTable.finalY+10;};
+  addT('General Trends',g,['Cohort','Title','Status','Notes','Date'],g.map(t=>[t.cohort||'—',t.title,STATUS_META[t.status].label,t.notes?t.notes.substring(0,55)+'…':'—',fmtDT(t.ts)]),[26,28,22]);
+  addT('Speciality Trends',s,['Cohort','Speciality','Title','Status','Date'],s.map(t=>[t.cohort||'—',t.speciality||'—',t.title,STATUS_META[t.status].label,fmtDT(t.ts)]),[91,53,176]);
+  addT('ERS Trends',e,['Cohort','Title','Status','Notes','Date'],e.map(t=>[t.cohort||'—',t.title,STATUS_META[t.status].label,t.notes?t.notes.substring(0,55)+'…':'—',fmtDT(t.ts)]),[26,138,90]);
+  addT('Win Log',w,['Type','Title','Details','Date'],w.map(x=>[x.type,x.title,x.notes?x.notes.substring(0,50)+'…':'—',x.date?fmtDate(x.date+'T00:00:00'):'—']),[146,101,10]);
+  const pc=doc.internal.getNumberOfPages();for(let i=1;i<=pc;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(160,160,160);doc.text('MBI Confidential — '+title+' — Page '+i+' of '+pc,14,doc.internal.pageSize.getHeight()-8);}
+  doc.save(title.replace(/[^a-z0-9]/gi,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
 }
 
-// VOICE RECOGNITION
-let activeRecognition=null;
-const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-
-function toggleVoice(fieldId,btnId,statusId){
-  if(!SpeechRecognition){
-    document.getElementById(statusId).textContent='Voice input not supported in this browser. Please use Chrome.';
-    document.getElementById(statusId).className='voice-status';
-    return;
-  }
-  const btn=document.getElementById(btnId);
-  const status=document.getElementById(statusId);
-  // If already recording this field, stop it
-  if(activeRecognition&&btn.classList.contains('recording')){
-    activeRecognition.stop();
-    return;
-  }
-  // Stop any other active recording
-  if(activeRecognition){activeRecognition.stop();}
-  // Reset all mic buttons
-  document.querySelectorAll('.mic-btn').forEach(b=>{b.classList.remove('recording');});
+// VOICE
+let activeRec=null;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function toggleVoice(fId,bId,sId){
+  if(!SR){const s=document.getElementById(sId);if(s)s.textContent='Voice not supported — use Chrome.';return;}
+  const btn=document.getElementById(bId),status=document.getElementById(sId);
+  if(activeRec&&btn&&btn.classList.contains('recording')){activeRec.stop();return;}
+  if(activeRec)activeRec.stop();
+  document.querySelectorAll('.mic-btn').forEach(b=>{b.classList.remove('recording');b.textContent='🎤';});
   document.querySelectorAll('.voice-status').forEach(s=>{s.textContent='';s.className='voice-status';});
-  const recognition=new SpeechRecognition();
-  recognition.continuous=true;
-  recognition.interimResults=true;
-  recognition.lang='en-GB';
-  activeRecognition=recognition;
-  btn.classList.add('recording');
-  btn.textContent='⏹';
-  status.textContent='🔴 Listening... speak now';
-  status.className='voice-status listening';
-  let finalText='';
-  const field=document.getElementById(fieldId);
-  const existing=field.value;
-  recognition.onresult=function(e){
-    let interim='';
-    finalText='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal)finalText+=e.results[i][0].transcript;
-      else interim+=e.results[i][0].transcript;
-    }
-    field.value=(existing?existing+' ':'')+finalText+interim;
-  };
-  recognition.onend=function(){
-    activeRecognition=null;
-    btn.classList.remove('recording');
-    btn.textContent='🎤';
-    if(finalText){
-      field.value=(existing?existing+' ':'')+finalText.trim();
-      status.textContent='✓ Added to field';
-      status.className='voice-status';
-      setTimeout(()=>{status.textContent='';},2500);
-    } else {
-      status.textContent='';
-    }
-  };
-  recognition.onerror=function(e){
-    activeRecognition=null;
-    btn.classList.remove('recording');
-    btn.textContent='🎤';
-    if(e.error==='not-allowed'){
-      status.textContent='Microphone access denied — please allow microphone in Chrome settings.';
-    } else {
-      status.textContent='Could not hear anything. Try again.';
-    }
-    status.className='voice-status';
-    setTimeout(()=>{status.textContent='';},3000);
-  };
-  recognition.start();
+  const rec=new SR();rec.continuous=true;rec.interimResults=true;rec.lang='en-GB';
+  activeRec=rec;if(btn){btn.classList.add('recording');btn.textContent='⏹';}
+  if(status){status.textContent='🔴 Listening...';status.className='voice-status listening';}
+  const field=document.getElementById(fId);const existing=field?field.value:'';let final='';
+  rec.onresult=e=>{let int='';final='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else int+=e.results[i][0].transcript;}if(field)field.value=(existing?existing+' ':'')+final+int;};
+  rec.onend=()=>{activeRec=null;if(btn){btn.classList.remove('recording');btn.textContent='🎤';}if(final&&field)field.value=(existing?existing+' ':'')+final.trim();if(status){status.textContent=final?'✓ Added':'';setTimeout(()=>{if(status)status.textContent='';},2500);}};
+  rec.onerror=e=>{activeRec=null;if(btn){btn.classList.remove('recording');btn.textContent='🎤';}if(status){status.textContent=e.error==='not-allowed'?'Mic access denied.':'Could not hear. Try again.';setTimeout(()=>{if(status)status.textContent='';},3000);}};
+  rec.start();
 }
 
-document.getElementById('notif-msg').addEventListener('keydown',e=>{if(e.key==='Enter')sendNotif();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePinModal();closeTrendModal();closeReportModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){[closePinModal,closeProjectModal,closeTrendModal,closeWinModal,closeApproveModal,closeReportModal].forEach(f=>f());}});
 
-applyRole();metrics();
-setInterval(metrics,30000);
+// INIT
+applySupRole();
+renderValNotifs();
+document.getElementById('sup-footer-list').textContent='MBI Project Tracker · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 </script>
 </body>
 </html>
